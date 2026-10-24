@@ -1,0 +1,1716 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Гофро-калькулятор</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#f4f6f9; --card:#fff; --ink:#1d2433; --muted:#6b7385; --line:#dfe3ea;
+  --accent:#1f5f99; --accent-soft:#e8f0f8; --input:#fffbea; --good:#2e7d32; --bad:#c62828; --warn:#b26a00;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Segoe UI",Arial,sans-serif}
+header{background:#16324f;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
+header h1{font-size:18px;margin:0;font-weight:600}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:transparent;border:0;color:#c9d6e6;padding:8px 14px;border-radius:6px;font:inherit;cursor:pointer}
+nav button.active{background:#fff;color:#16324f;font-weight:600}
+main{padding:16px 20px;max-width:1500px;margin:0 auto}
+.tab{display:none}.tab.active{display:block}
+.grid2{display:grid;grid-template-columns:minmax(330px,420px) 1fr;gap:16px;align-items:start}
+@media (max-width:900px){.grid2{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin-bottom:16px}
+.card h2{font-size:15px;margin:0 0 10px;color:var(--accent)}
+.card h3{font-size:13px;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px 10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px 10px}
+label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted)}
+input,select{font:inherit;color:var(--ink);padding:6px 8px;border:1px solid #cfd5df;border-radius:6px;background:var(--input);width:100%;min-width:0}
+input:focus,select:focus{outline:2px solid #9cc0e6;border-color:#6b9ccc}
+input[readonly]{background:#f3f4f6;color:var(--muted)}
+.seg{display:flex;border:1px solid #cfd5df;border-radius:6px;overflow:hidden}
+.seg label{flex:1;flex-direction:row;justify-content:center;align-items:center;padding:6px 4px;cursor:pointer;color:var(--ink);background:#fff;font-size:13px}
+.seg input{display:none}
+.seg label:has(input:checked){background:var(--accent);color:#fff}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:6px;padding:8px 14px;font:inherit;cursor:pointer}
+.btn.sec{background:#fff;color:var(--accent);border:1px solid var(--accent)}
+.btn.small{padding:4px 10px;font-size:12px}
+.btn.del{background:transparent;color:var(--bad);border:0;font-size:16px;padding:0 6px}
+table{border-collapse:collapse;width:100%}
+th,td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{font-size:12px;color:var(--muted);font-weight:600;background:#f8f9fb}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.total td{font-weight:700;border-top:2px solid var(--line)}
+tr.hl td{background:var(--accent-soft)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--accent-soft);border-radius:8px;padding:10px 12px}
+.kpi .l{font-size:12px;color:var(--muted)}.kpi .v{font-size:20px;font-weight:700}
+.kpi.good{background:#e8f5e9}.kpi.bad{background:#fdecea}
+.note{font-size:12px;color:var(--muted);margin:6px 0 0}
+.warn{color:var(--warn)}.bad{color:var(--bad)}.good{color:var(--good)}
+.drawwrap{background:#fff;border:1px solid var(--line);border-radius:8px;min-height:360px}
+.drawwrap svg{width:100%;height:auto;display:block;max-height:640px}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:6px;flex-wrap:wrap}
+.legend span::before{content:"";display:inline-block;width:22px;height:0;border-top:2px solid #111;margin-right:6px;vertical-align:middle}
+.legend span.cr::before{border-top:2px dashed #d32f2f}
+#drawMethod::before,#fluteLeg::before{display:none}
+.ltable input,.ltable select{padding:4px 6px;font-size:13px}
+.ltable td{padding:4px 5px}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.pcard{border:1px solid var(--line);border-radius:8px;padding:8px;font-size:12px}
+.pcard svg{width:100%;height:auto}
+.swatch{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.flex{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.items{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:7px 10px;cursor:pointer;background:#fff}
+.item:hover{border-color:#9cc0e6}
+.item.sel{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.item .t span{font-size:12px;color:var(--muted)}
+.item .p{text-align:right;font-size:12px;white-space:nowrap}
+.sechead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:4px}
+.chip{border:1px solid #c9d6e6;background:#fff;border-radius:14px;padding:2px 9px;font-size:12px;cursor:pointer;color:var(--accent)}
+.chip:hover{background:var(--accent-soft)}
+.delbox{background:var(--accent-soft);border-radius:8px;padding:10px 12px;margin-top:10px;font-size:13px}
+.delbox b.big{font-size:17px}
+#voiceFab{position:fixed;right:20px;bottom:20px;z-index:50;background:#c62828;color:#fff;border:0;border-radius:28px;padding:12px 20px;font:600 15px "Segoe UI",Arial,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+#voicePanel{position:fixed;right:20px;bottom:76px;z-index:50;width:min(440px,calc(100vw - 40px));max-height:calc(100vh - 110px);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:14px 16px;display:none}
+#voicePanel.open{display:block}
+#voicePanel h2{font-size:15px;margin:0 0 8px;color:var(--accent)}
+#micBtn{width:100%;padding:14px;font-size:16px;font-weight:600;border:0;border-radius:10px;background:var(--accent);color:#fff;cursor:pointer}
+#micBtn.on{background:#c62828;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{opacity:.75}}
+.vbox{background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:8px;font-size:13px;min-height:20px}
+.vbox.ans{background:#e8f5e9;font-size:14px}
+@media (max-width:600px){
+  main{padding:10px}
+  header{padding:8px 10px;gap:8px}
+  header h1{font-size:16px}
+  nav button{padding:6px 8px;font-size:13px}
+  .card{padding:12px}
+  .kpi .v{font-size:17px}
+  #voiceFab{right:12px;bottom:12px;padding:10px 14px;font-size:14px}
+  #voicePanel{right:8px;bottom:62px;width:calc(100vw - 16px)}
+}
+.grid2>*,label,.card{min-width:0}
+select{max-width:100%}
+.card table{max-width:100%}
+#resTable td:first-child{white-space:normal}
+#printArea{display:none}
+@media print{
+  body{background:#fff}
+  header,main{display:none!important}
+  #printArea{display:block;padding:0;font:12px Arial,sans-serif}
+  #printArea table td,#printArea table th{border:1px solid #999;padding:4px 6px}
+  #printArea svg{width:100%;height:auto;max-height:140mm}
+  .pagebreak{page-break-after:always;break-after:page}
+  @page{size:A4 landscape;margin:10mm}
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Гофро-калькулятор</h1>
+  <nav id="nav">
+    <button data-tab="t-cost" class="active">Стоимость и чертёж</button>
+    <button data-tab="t-load">Загрузка: паллеты и машина</button>
+    <button data-tab="t-all">Все конструкции</button>
+    <button data-tab="t-set">Настройки</button>
+  </nav>
+</header>
+<main>
+
+<!-- ========== СТОИМОСТЬ ========== -->
+<section class="tab active" id="t-cost">
+<div class="grid2">
+ <div>
+  <div class="card">
+   <div class="sechead"><h2>Изделия в расчёте</h2><span class="note" id="itemsCount"></span></div>
+   <div class="items" id="itemList"></div>
+   <div class="flex">
+    <button class="btn small" id="btnNew">+ Новое изделие</button>
+    <button class="btn sec small" id="btnCopy">Копировать выбранное</button>
+    <button class="btn sec small" id="btnDelItem" style="color:var(--bad);border-color:var(--bad)">Удалить выбранное</button>
+   </div>
+  </div>
+
+  <div class="card">
+   <h2 id="formTitle">Изделие</h2>
+   <div class="row">
+    <label style="grid-column:1/3">Конструкция<select id="c_con"></select></label>
+    <label style="grid-column:1/3">Название изделия<input id="c_name" type="text" placeholder="например, Короб под снеки"></label>
+   </div>
+   <h3>Внутренние размеры, мм</h3>
+   <div class="row3">
+    <label>Длина (Д)<input id="c_L" type="number" min="1"></label>
+    <label>Ширина (Ш)<input id="c_W" type="number" min="1"></label>
+    <label id="lbl_H">Высота (В)<input id="c_H" type="number" min="1"></label>
+   </div>
+   <h3>Картон</h3>
+   <div class="row">
+    <label>Марка<select id="c_grade"></select></label>
+    <label>Профиль<select id="c_prof"></select></label>
+    <label>Цвет<select id="c_color"><option>бурый</option><option>белый</option></select></label>
+    <label>Направление гофры<select id="c_flute"><option value="1">1 — вертикально (как на значке)</option><option value="2">2 — поперёк (горизонтально)</option></select></label>
+    <label>Печать<select id="c_print"><option value="0">без печати</option><option value="1">1 цвет</option><option value="2">2 цвета</option><option value="3">3 цвета</option><option value="4">4 цвета</option></select></label>
+   </div>
+   <h3>Тираж и цена</h3>
+   <div class="row">
+    <label>Тираж, шт<input id="c_qty" type="number" min="1"></label>
+    <label>Закупка у завода, ₽/м²<input id="c_buy" type="number" step="any" placeholder="цена за м²"></label>
+    <label>Наша цена<select id="c_mmode">
+      <option value="m2">Наценка, ₽ за м²</option>
+      <option value="pc">Наценка, ₽ за шт</option>
+      <option value="pct">Наценка, % к закупке</option>
+      <option value="pricem2">Своя цена за м² (с НДС, доставка внутри)</option>
+      <option value="pricepc">Своя цена за шт (с НДС, доставка внутри)</option>
+    </select></label>
+    <label id="lbl_mval">Значение<input id="c_mval" type="number" step="any"></label>
+    <label>Клише / штамп, ₽ (с НДС)<input id="c_once" type="number" step="any" min="0"></label>
+    <label>Заложить в цену изделия<select id="c_oncein"><option value="1">да</option><option value="0">нет</option></select></label>
+   </div>
+  </div>
+
+  <div class="card">
+   <h2>Общее для всего заказа</h2>
+   <label>Цены завода указаны
+    <div class="seg"><label><input type="radio" name="g_buyvat" value="with" checked>с НДС</label><label><input type="radio" name="g_buyvat" value="without">без НДС (НДС сверху)</label></div>
+   </label>
+   <h3>Доставка (один рейс на все изделия)</h3>
+   <label>Как считать доставку
+    <div class="seg"><label><input type="radio" name="g_delmode" value="auto" checked>Авто по маршруту</label><label><input type="radio" name="g_delmode" value="manual">Вручную (сумма рейса)</label></div>
+   </label>
+   <div class="row" id="autoDel" style="margin-top:8px">
+    <label style="grid-column:1/3">Откуда<input id="g_from" list="cityList" autocomplete="off" placeholder="Начните вводить город"><span class="chips" id="favs"></span></label>
+    <label style="grid-column:1/3">Куда<input id="g_to" list="cityList" autocomplete="off" placeholder="Начните вводить город"></label>
+    <label>Расстояние, км<input id="g_km" type="number" min="1" placeholder="авто"></label>
+    <span class="note" id="kmInfo" style="align-self:end;margin:0 0 6px"></span>
+   </div>
+   <datalist id="cityList"></datalist>
+   <div class="row" style="margin-top:8px">
+    <label id="manDel">Стоимость рейса, ₽<input id="g_del" type="number" step="any" min="0" value="0"></label>
+    <label>Цена перевозки
+     <div class="seg"><label><input type="radio" name="g_delvat" value="with" checked>с НДС</label><label><input type="radio" name="g_delvat" value="without">без НДС</label></div>
+    </label>
+    <label style="grid-column:1/3">Делить доставку между изделиями
+     <select id="g_split"><option value="kg">пропорционально весу</option><option value="m2">пропорционально площади (м²)</option><option value="pal">пропорционально паллетам</option></select>
+    </label>
+   </div>
+   <div class="delbox" id="delBox"></div>
+   <p class="note" id="delNote"></p>
+  </div>
+
+  <div class="card">
+   <h2>Коммерческое предложение и чертежи</h2>
+   <div class="row">
+    <label style="grid-column:1/3">Заказчик (компания)<input id="g_client" type="text" placeholder="ООО «Ромашка»"></label>
+    <label>Контактное лицо<input id="g_person" type="text" placeholder="Ольга"></label>
+    <label>№ КП<input id="g_kpno" type="text" placeholder="необязательно"></label>
+    <label style="grid-column:1/3">Адрес доставки<input id="g_addr" type="text" placeholder="г. Москва, ул. …, склад"></label>
+    <label>Условия оплаты<input id="g_pay" type="text"></label>
+    <label>Цены действуют до<input id="g_valid" type="date"></label>
+   </div>
+   <p class="note">Ваши реквизиты для подписи КП — на вкладке «Настройки».</p>
+   <div class="flex" style="margin-top:12px">
+    <button class="btn" id="btnKP">Скачать КП (Word)</button>
+    <button class="btn sec" id="btnDraw">Сохранить чертёж (Word)</button>
+    <button class="btn sec" id="btnDrawAll">Сохранить все чертежи (Word)</button>
+   </div>
+   <p class="note" id="exportNote"></p>
+  </div>
+ </div>
+
+ <div>
+  <div class="card">
+   <h2>Итого по заказу</h2>
+   <div class="kpis" id="kpis"></div>
+   <div style="overflow-x:auto"><table id="sumTable"></table></div>
+   <p class="note" id="sumNote"></p>
+  </div>
+  <div class="card">
+   <h2 id="drawTitle">Развёртка</h2>
+   <div class="drawwrap" id="drawing"></div>
+   <div class="legend"><span>линия реза</span><span class="cr">линия биговки</span><span id="fluteLeg" style="display:inline-flex;align-items:center;gap:4px"></span><span id="drawMethod"></span></div>
+  </div>
+  <div class="card">
+   <h2 id="detTitle">Детально по изделию</h2>
+   <table id="resTable"></table>
+   <p class="note" id="resNote"></p>
+  </div>
+ </div>
+</div>
+</section>
+
+<!-- ========== ЗАГРУЗКА ========== -->
+<section class="tab" id="t-load">
+ <div class="card">
+  <h2>Позиции в машину</h2>
+  <p class="note" style="margin:0 0 8px">Все изделия из расчёта попадают сюда автоматически, с тиражом из расчёта. Изделия едут в сложенном виде (короба склеены и сложены, вырубка и лист плоские). Если нужно, добавьте груз вручную — например, позиции другого клиента для сборной машины.</p>
+  <div style="overflow-x:auto">
+  <table class="ltable" id="loadTable"></table>
+  </div>
+  <div class="flex" style="margin-top:10px">
+   <button class="btn sec small" id="btnAddManual">+ Добавить груз вручную</button>
+   <label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)">Макс. высота паллета с поддоном
+    <select id="l_maxh" style="width:auto"><option value="2200">2200 мм</option><option value="2400">2400 мм</option></select></label>
+   <label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input type="checkbox" id="l_stack" style="width:auto"> паллеты в 2 яруса, если позволяет высота</label>
+  </div>
+ </div>
+
+ <div class="card">
+  <h2>Итог и выбор машины</h2>
+  <div class="kpis" id="loadKpis"></div>
+  <table id="truckTable"></table>
+  <p class="note">Расчёт ориентировочный: проверяется площадь пола, высота и грузоподъёмность. Перед заказом машины уточните у перевозчика размер кузова.</p>
+ </div>
+
+ <div class="card">
+  <h2>Схема загрузки кузова (вид сверху)</h2>
+  <div class="flex"><label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)">Машина <select id="l_truck" style="width:auto"></select></label></div>
+  <div id="truckSvg" style="margin-top:10px;overflow-x:auto"></div>
+ </div>
+
+ <div class="card">
+  <h2>Укладка на паллете (вид сверху, один слой)</h2>
+  <div class="pgrid" id="palletGrid"></div>
+ </div>
+</section>
+
+<!-- ========== ВСЕ КОНСТРУКЦИИ ========== -->
+<section class="tab" id="t-all">
+ <div class="card">
+  <h2>Все конструкции для выбранного изделия</h2>
+  <p class="note" id="allNote" style="margin:0 0 8px"></p>
+  <div style="overflow-x:auto"><table id="allTable"></table></div>
+ </div>
+</section>
+
+<!-- ========== НАСТРОЙКИ ========== -->
+<section class="tab" id="t-set">
+ <div class="card">
+  <h2>Ваши данные для КП</h2>
+  <div class="row" style="max-width:720px">
+   <label>Компания<input data-set="company.name" id="s_cname" type="text" placeholder="ООО «…»"></label>
+   <label>ФИО<input data-set="company.person" type="text" placeholder="Владимир …"></label>
+   <label>Должность<input data-set="company.position" type="text"></label>
+   <label>Телефон<input data-set="company.phone" type="text"></label>
+   <label>E-mail<input data-set="company.email" type="text"></label>
+   <label>WhatsApp / Telegram / сайт<input data-set="company.extra" type="text"></label>
+  </div>
+ </div>
+ <div class="card">
+  <h2>Налоги</h2>
+  <div class="row" style="max-width:420px">
+   <label>НДС, %<input id="s_vat" type="number" step="any"></label>
+   <label>Налог на прибыль, %<input id="s_tax" type="number" step="any"></label>
+  </div>
+  <p class="note">С 1 января 2026 года основная ставка НДС 22%, налог на прибыль 25%.</p>
+ </div>
+ <div class="card">
+  <h2>Припуски по профилям, мм</h2>
+  <table id="profTable"></table>
+  <div class="row" style="max-width:520px;margin-top:10px">
+   <label>Нахлёст наружных клапанов 0202, мм<input id="s_ov" type="number" step="any"></label>
+   <label>Припуск на обрез к заготовке, мм<input id="s_trim" type="number" step="any"></label>
+  </div>
+  <p class="note">aP добавляется к каждой панели Д и Ш, aH к высоте (на обе биговки). Клапан склейки: 30 мм для трёхслойного картона, 40 мм для BC. Значения типовые, сверьте с техкартой завода.</p>
+ </div>
+ <div class="card">
+  <h2>Марки картона</h2>
+  <table id="gradeTable"></table>
+  <p class="note">Масса 1 м² ориентировочная, нужна для веса коробов и загрузки. Уточните у завода.</p>
+ </div>
+ <div class="card">
+  <h2>Паллеты</h2>
+  <table id="palTable"></table>
+  <div class="row" style="max-width:520px;margin-top:10px">
+   <label>Макс. вес паллета, кг<input id="s_palkg" type="number" step="any"></label>
+   <label>Допустимый свес с паллета, мм (с каждой стороны)<input id="s_over" type="number" step="any"></label>
+  </div>
+ </div>
+ <div class="card">
+  <h2>Машины (тент): размеры кузова и ставки перевозки</h2>
+  <div style="overflow-x:auto"><table id="truckSetTable"></table></div>
+  <div class="row" style="max-width:640px;margin-top:10px">
+   <label>Коэффициент дорог (км по дороге ÷ по прямой)<input id="s_roadK" type="number" step="0.01"></label>
+   <label>Расстояние внутри одного города, км<input id="s_cityKm" type="number"></label>
+  </div>
+  <p class="note">Стоимость рейса = расстояние × ставка за км, но не меньше минимального заказа. Ставки по умолчанию — оценка рынка на октябрь 2026 (тент, с НДС 22%); сверьте со своими перевозчиками. При изменении ставки с НДС ставка без НДС пересчитывается как ÷1,22 — её можно поправить отдельно.</p>
+ </div>
+ <div class="flex"><button class="btn sec" id="btnReset">Сбросить настройки по умолчанию</button><span class="note" id="saveNote"></span></div>
+</section>
+</main>
+
+<button id="voiceFab" type="button" onclick="document.getElementById('voicePanel').classList.toggle('open')">🎤 Голос</button>
+<div id="voicePanel">
+ <div class="flex" style="justify-content:space-between"><h2>Голосовой расчёт</h2><button class="btn sec small" id="v_toggle" type="button">Свернуть</button></div>
+ <button id="micBtn" type="button">🎤 Говорить</button>
+ <p class="note">Например: «ноль двести один, триста на двести на сто пятьдесят, Т двадцать три, профиль Б, тираж пять тысяч, закупка сорок рублей за метр, наценка восемь рублей за метр, из Алексина в Ярославль». Если чего-то не хватит — спрошу. Команды: «новое изделие», «итого», «доставка», «повтори», «считай» (без вопросов). Горячая клавиша: Ctrl + пробел.</p>
+ <div class="vbox" id="v_heard" title="Что услышано"></div>
+ <div class="note" id="v_parsed"></div>
+ <div class="vbox ans" id="v_answer">Нажмите «Говорить» и назовите изделие.</div>
+ <div class="flex" style="margin-top:8px"><button class="btn sec small" id="v_repeat" type="button">Повторить ответ</button><button class="btn sec small" id="v_stop" type="button">Замолчать</button></div>
+ <div class="flex" style="margin-top:8px;flex-wrap:nowrap"><input id="v_text" type="text" placeholder="…или напишите команду и нажмите Enter"><button class="btn small" id="v_send" type="button">→</button></div>
+ <h3 style="font-size:12px;color:var(--muted);margin:12px 0 4px">ГОЛОС</h3>
+ <div class="row">
+  <label>Голос<select id="v_voice"></select></label>
+  <label>Скорость речи<input id="v_rate" type="number" min="0.5" max="2" step="0.1" value="1.1"></label>
+ </div>
+ <p class="note warn" id="v_novoice" style="display:none">В системе нет русского голоса. Windows: Параметры → Время и язык → Речь → Добавить голоса → Русский. Либо откройте файл в Microsoft Edge — там русские голоса есть сразу.</p>
+ <label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink);margin-top:6px"><input type="checkbox" id="v_speak" checked style="width:auto"> отвечать голосом</label>
+ <label style="flex-direction:row;align-items:center;gap:6px;color:var(--ink)"><input type="checkbox" id="v_auto" checked style="width:auto"> после вопроса сразу слушать ответ</label>
+ <p class="note">Распознавание речи работает в Google Chrome и Microsoft Edge и требует интернета. Голос ответа — встроенный в Windows/браузер; в Edge русские голоса звучат естественнее.</p>
+</div>
+<div id="printArea"></div>
+
+<script>
+"use strict";
+/* ======================= ДАННЫЕ ПО УМОЛЧАНИЮ ======================= */
+const DEF = {
+  vat: 22, tax: 25,
+  profiles: {
+    "E": {t:1.5, aP:2, aH:3,  G:30},
+    "B": {t:3,   aP:3, aH:6,  G:30},
+    "C": {t:4,   aP:4, aH:8,  G:30},
+    "BC":{t:7,   aP:7, aH:14, G:40}
+  },
+  ov0202: 50, trim: 0,
+  grades: [
+    {name:"Т-21", ply:3, kg:0.47}, {name:"Т-22", ply:3, kg:0.52}, {name:"Т-23", ply:3, kg:0.56}, {name:"Т-24", ply:3, kg:0.64},
+    {name:"П-31", ply:5, kg:0.78}, {name:"П-32", ply:5, kg:0.85}, {name:"П-33", ply:5, kg:0.92}, {name:"П-34", ply:5, kg:1.00}
+  ],
+  pallets: [{name:"1200×800", L:1200, W:800, h:145}, {name:"1200×1000", L:1200, W:1000, h:145}],
+  palKg: 1000, over: 0,
+  company: {name:"", person:"", position:"Директор", phone:"", email:"", extra:""},
+  roadK: 1.1, cityKm: 30,
+  trucks: [
+    {name:"3 т",  L:4200,  W:2050, H:2100, kg:3000,  rate:60,  min:12000, rateN:49.2, minN:9800},
+    {name:"5 т",  L:6100,  W:2450, H:2300, kg:5000,  rate:72,  min:16000, rateN:59,   minN:13100},
+    {name:"10 т", L:7500,  W:2450, H:2500, kg:10000, rate:88,  min:22000, rateN:72.1, minN:18000},
+    {name:"15 т", L:9600,  W:2450, H:2600, kg:15000, rate:102, min:27000, rateN:83.6, minN:22100},
+    {name:"20 т", L:13600, W:2450, H:2650, kg:20000, rate:115, min:32000, rateN:94.3, minN:26200}
+  ]
+};
+const NEW_ITEM = () => ({con:"0201", name:"", L:300, W:200, H:150, grade:"Т-23", prof:"B", color:"бурый", flute:"1", print:"0",
+  qty:5000, buy:"", mmode:"m2", mval:0, once:0, onceIn:"1", pal:"auto"});
+const LS_SET = "gofro_settings_v1", LS_ORDER = "gofro_order_v2", LS_MAN = "gofro_manual_v2";
+function lsGet(k){ try{ const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+let S = Object.assign(JSON.parse(JSON.stringify(DEF)), lsGet(LS_SET) || {});
+if (!S.trucks || !S.trucks.every(t=>"rate" in t)) S.trucks = JSON.parse(JSON.stringify(DEF.trucks));
+if (!S.roadK) S.roadK = DEF.roadK; if (!S.cityKm) S.cityKm = DEF.cityKm;
+let ORDER = lsGet(LS_ORDER) || {items:[NEW_ITEM()], sel:0, buyVat:"with", del:0, delVat:"with", split:"kg", client:"", person:"", kpno:"", addr:"", pay:"100% предоплата", valid:""};
+if (!ORDER.items || !ORDER.items.length){ ORDER.items = [NEW_ITEM()]; ORDER.sel = 0; }
+if (!ORDER.delMode) ORDER.delMode = parseFloat(ORDER.del) > 0 ? "manual" : "auto";
+if (ORDER.from === undefined){ ORDER.from = "Москва"; ORDER.to = ""; ORDER.km = ""; }
+let MANUAL = lsGet(LS_MAN) || [];
+
+/* ======================= УТИЛИТЫ ======================= */
+const $ = id => document.getElementById(id);
+const num = (v, d=0) => { const x = parseFloat(String(v).replace(",", ".")); return isFinite(x) ? x : d; };
+const fmt = (x, d=2) => isFinite(x) ? x.toLocaleString("ru-RU", {minimumFractionDigits:d, maximumFractionDigits:d}) : "—";
+const fmt0 = x => fmt(x, 0);
+const rub = (x, d=2) => isFinite(x) ? fmt(x, d) + " ₽" : "—";
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const radio = n => (document.querySelector(`input[name="${n}"]:checked`) || {}).value;
+const setRadio = (n, v) => { const el = document.querySelector(`input[name="${n}"][value="${v}"]`); if (el) el.checked = true; };
+const COLORS = ["#4e79a7","#f28e2b","#59a14f","#e15759","#76b7b2","#edc948","#b07aa1","#ff9da7","#9c755f","#86bcb6"];
+const r1 = x => Math.round(x*10)/10;
+
+/* ======================= ГОРОДА И МАРШРУТ ======================= */
+const CITIES = [
+["Москва","Москва",55.7558,37.6173],["Зеленоград","Москва",55.991,37.214],["Троицк","Москва",55.485,37.307],["Щербинка","Москва",55.500,37.560],
+["Балашиха","Московская обл.",55.796,37.938],["Подольск","Московская обл.",55.431,37.545],["Химки","Московская обл.",55.889,37.445],["Мытищи","Московская обл.",55.910,37.736],
+["Королёв","Московская обл.",55.922,37.854],["Люберцы","Московская обл.",55.676,37.898],["Красногорск","Московская обл.",55.831,37.330],["Электросталь","Московская обл.",55.789,38.446],
+["Коломна","Московская обл.",55.103,38.753],["Одинцово","Московская обл.",55.678,37.264],["Домодедово","Московская обл.",55.437,37.766],["Серпухов","Московская обл.",54.913,37.411],
+["Щёлково","Московская обл.",55.920,37.998],["Орехово-Зуево","Московская обл.",55.806,38.962],["Раменское","Московская обл.",55.567,38.230],["Долгопрудный","Московская обл.",55.938,37.501],
+["Жуковский","Московская обл.",55.597,38.112],["Пушкино","Московская обл.",56.011,37.847],["Реутов","Московская обл.",55.761,37.857],["Сергиев Посад","Московская обл.",56.315,38.136],
+["Ногинск","Московская обл.",55.855,38.441],["Видное","Московская обл.",55.552,37.709],["Лобня","Московская обл.",56.012,37.474],["Клин","Московская обл.",56.331,36.729],
+["Дмитров","Московская обл.",56.344,37.520],["Чехов","Московская обл.",55.143,37.455],["Наро-Фоминск","Московская обл.",55.386,36.733],["Егорьевск","Московская обл.",55.383,39.036],
+["Воскресенск","Московская обл.",55.317,38.653],["Ступино","Московская обл.",54.886,38.078],["Павловский Посад","Московская обл.",55.780,38.659],["Солнечногорск","Московская обл.",56.185,36.977],
+["Истра","Московская обл.",55.915,36.860],["Дзержинский","Московская обл.",55.630,37.850],["Фрязино","Московская обл.",55.959,38.045],["Ивантеевка","Московская обл.",55.971,37.921],
+["Лыткарино","Московская обл.",55.578,37.903],["Котельники","Московская обл.",55.660,37.863],["Электроугли","Московская обл.",55.717,38.219],["Старая Купавна","Московская обл.",55.807,38.177],
+["Шатура","Московская обл.",55.578,39.544],["Луховицы","Московская обл.",54.965,39.025],["Кашира","Московская обл.",54.834,38.152],["Озёры","Московская обл.",54.856,38.554],
+["Зарайск","Московская обл.",54.758,38.883],["Волоколамск","Московская обл.",56.035,35.957],["Можайск","Московская обл.",55.507,36.025],["Руза","Московская обл.",55.701,36.195],
+["Талдом","Московская обл.",56.731,37.528],["Дубна","Московская обл.",56.732,37.167],["Протвино","Московская обл.",54.871,37.218],["Пущино","Московская обл.",54.833,37.621],
+["Апрелевка","Московская обл.",55.552,37.073],["Звенигород","Московская обл.",55.733,36.857],["Голицыно","Московская обл.",55.613,36.990],["Бронницы","Московская обл.",55.425,38.264],
+["Лосино-Петровский","Московская обл.",55.871,38.200],["Красноармейск","Московская обл.",56.105,38.140],["Хотьково","Московская обл.",56.252,37.980],["Яхрома","Московская обл.",56.289,37.484],
+["Куровское","Московская обл.",55.579,38.919],["Ликино-Дулёво","Московская обл.",55.708,38.957],["Дрезна","Московская обл.",55.743,38.849],["Электрогорск","Московская обл.",55.877,38.794],
+["Белоозёрский","Московская обл.",55.460,38.440],["Чашниково","Московская обл.",56.030,37.180],["Обухово","Московская обл.",55.830,38.280],
+["Тула","Тульская обл.",54.193,37.617],["Алексин","Тульская обл.",54.508,37.068],["Новомосковск","Тульская обл.",54.011,38.290],["Узловая","Тульская обл.",53.976,38.164],
+["Щёкино","Тульская обл.",54.002,37.517],["Ефремов","Тульская обл.",53.146,38.120],["Богородицк","Тульская обл.",53.770,38.123],["Донской","Тульская обл.",53.968,38.326],
+["Кимовск","Тульская обл.",53.970,38.533],["Венёв","Тульская обл.",54.354,38.264],["Суворов","Тульская обл.",54.134,36.493],["Ясногорск","Тульская обл.",54.480,37.690],
+["Киреевск","Тульская обл.",53.932,37.927],["Плавск","Тульская обл.",53.708,37.290],["Белёв","Тульская обл.",53.811,36.134],
+["Калуга","Калужская обл.",54.513,36.261],["Обнинск","Калужская обл.",55.097,36.611],["Малоярославец","Калужская обл.",55.013,36.464],["Людиново","Калужская обл.",53.866,34.447],
+["Киров","Калужская обл.",54.079,34.308],["Козельск","Калужская обл.",54.035,35.783],["Сухиничи","Калужская обл.",54.097,35.344],["Балабаново","Калужская обл.",55.182,36.658],
+["Боровск","Калужская обл.",55.207,36.486],["Ворсино","Калужская обл.",55.230,36.620],
+["Рязань","Рязанская обл.",54.630,39.736],["Касимов","Рязанская обл.",54.938,41.391],["Скопин","Рязанская обл.",53.825,39.548],["Сасово","Рязанская обл.",54.351,41.919],
+["Ряжск","Рязанская обл.",53.708,40.068],["Рыбное","Рязанская обл.",54.731,39.512],["Михайлов","Рязанская обл.",54.230,39.008],["Новомичуринск","Рязанская обл.",54.037,39.746],
+["Владимир","Владимирская обл.",56.129,40.407],["Ковров","Владимирская обл.",56.358,41.317],["Муром","Владимирская обл.",55.575,42.051],["Александров","Владимирская обл.",56.398,38.712],
+["Гусь-Хрустальный","Владимирская обл.",55.619,40.658],["Кольчугино","Владимирская обл.",56.300,39.381],["Вязники","Владимирская обл.",56.243,42.159],["Киржач","Владимирская обл.",56.157,38.866],
+["Петушки","Владимирская обл.",55.928,39.461],["Покров","Владимирская обл.",55.918,39.183],["Собинка","Владимирская обл.",55.993,40.017],["Юрьев-Польский","Владимирская обл.",56.496,39.682],
+["Суздаль","Владимирская обл.",56.419,40.449],["Струнино","Владимирская обл.",56.373,38.584],["Камешково","Владимирская обл.",56.349,40.995],["Лакинск","Владимирская обл.",56.018,39.957],
+["Ярославль","Ярославская обл.",57.626,39.894],["Рыбинск","Ярославская обл.",58.048,38.858],["Переславль-Залесский","Ярославская обл.",56.737,38.854],["Ростов","Ярославская обл.",57.186,39.414],
+["Углич","Ярославская обл.",57.527,38.331],["Тутаев","Ярославская обл.",57.868,39.536],["Данилов","Ярославская обл.",58.186,40.180],["Гаврилов-Ям","Ярославская обл.",57.307,39.851],
+["Пошехонье","Ярославская обл.",58.506,39.137],
+["Иваново","Ивановская обл.",57.000,40.974],["Кинешма","Ивановская обл.",57.442,42.169],["Шуя","Ивановская обл.",56.849,41.389],["Вичуга","Ивановская обл.",57.209,41.932],
+["Фурманов","Ивановская обл.",57.254,41.105],["Тейково","Ивановская обл.",56.861,40.540],["Кохма","Ивановская обл.",56.936,41.090],["Родники","Ивановская обл.",57.104,41.734],
+["Приволжск","Ивановская обл.",57.380,41.282],
+["Кострома","Костромская обл.",57.768,40.927],["Буй","Костромская обл.",58.473,41.531],["Нерехта","Костромская обл.",57.457,40.573],["Шарья","Костромская обл.",58.374,45.512],
+["Галич","Костромская обл.",58.381,42.347],["Мантурово","Костромская обл.",58.333,44.767],
+["Тверь","Тверская обл.",56.859,35.912],["Ржев","Тверская обл.",56.263,34.329],["Вышний Волочёк","Тверская обл.",57.592,34.565],["Кимры","Тверская обл.",56.873,37.355],
+["Торжок","Тверская обл.",57.041,34.960],["Конаково","Тверская обл.",56.708,36.762],["Бологое","Тверская обл.",57.886,34.050],["Удомля","Тверская обл.",57.879,35.012],
+["Бежецк","Тверская обл.",57.786,36.693],["Кашин","Тверская обл.",57.360,37.611],["Нелидово","Тверская обл.",56.222,32.776],["Осташков","Тверская обл.",57.148,33.103],
+["Лихославль","Тверская обл.",57.122,35.465],
+["Смоленск","Смоленская обл.",54.782,32.045],["Вязьма","Смоленская обл.",55.211,34.297],["Рославль","Смоленская обл.",53.951,32.856],["Ярцево","Смоленская обл.",55.067,32.694],
+["Сафоново","Смоленская обл.",55.108,33.240],["Гагарин","Смоленская обл.",55.553,34.997],["Десногорск","Смоленская обл.",54.152,33.288],["Дорогобуж","Смоленская обл.",54.914,33.302],
+["Брянск","Брянская обл.",53.243,34.364],["Клинцы","Брянская обл.",52.761,32.236],["Новозыбков","Брянская обл.",52.537,31.936],["Дятьково","Брянская обл.",53.596,34.339],
+["Сельцо","Брянская обл.",53.374,34.096],["Унеча","Брянская обл.",52.846,32.677],["Карачев","Брянская обл.",53.124,34.986],["Жуковка","Брянская обл.",53.534,33.731],
+["Стародуб","Брянская обл.",52.585,32.760],
+["Орёл","Орловская обл.",52.970,36.064],["Ливны","Орловская обл.",52.425,37.605],["Мценск","Орловская обл.",53.279,36.575],["Болхов","Орловская обл.",53.444,36.006],
+["Курск","Курская обл.",51.730,36.193],["Железногорск","Курская обл.",52.338,35.351],["Курчатов","Курская обл.",51.660,35.657],["Льгов","Курская обл.",51.659,35.271],
+["Щигры","Курская обл.",51.879,36.903],["Рыльск","Курская обл.",51.568,34.680],["Обоянь","Курская обл.",51.212,36.276],
+["Белгород","Белгородская обл.",50.595,36.587],["Старый Оскол","Белгородская обл.",51.298,37.835],["Губкин","Белгородская обл.",51.284,37.556],["Шебекино","Белгородская обл.",50.401,36.889],
+["Алексеевка","Белгородская обл.",50.629,38.689],["Валуйки","Белгородская обл.",50.211,38.100],["Новый Оскол","Белгородская обл.",50.763,37.867],["Строитель","Белгородская обл.",50.784,36.488],
+["Липецк","Липецкая обл.",52.603,39.570],["Елец","Липецкая обл.",52.624,38.503],["Грязи","Липецкая обл.",52.497,39.937],["Данков","Липецкая обл.",53.258,39.150],
+["Лебедянь","Липецкая обл.",53.016,39.149],["Усмань","Липецкая обл.",52.044,39.738],["Чаплыгин","Липецкая обл.",53.243,39.967],["Задонск","Липецкая обл.",52.390,38.920],
+["Тамбов","Тамбовская обл.",52.721,41.452],["Мичуринск","Тамбовская обл.",52.896,40.492],["Рассказово","Тамбовская обл.",52.654,41.875],["Моршанск","Тамбовская обл.",53.442,41.811],
+["Котовск","Тамбовская обл.",52.592,41.511],["Уварово","Тамбовская обл.",51.980,42.267],["Кирсанов","Тамбовская обл.",52.651,42.729],
+["Воронеж","Воронежская обл.",51.661,39.200],["Борисоглебск","Воронежская обл.",51.367,42.088],["Россошь","Воронежская обл.",50.198,39.567],["Лиски","Воронежская обл.",50.983,39.509],
+["Острогожск","Воронежская обл.",50.866,39.077],["Нововоронеж","Воронежская обл.",51.309,39.217],["Бутурлиновка","Воронежская обл.",50.831,40.598],["Павловск","Воронежская обл.",50.454,40.110],
+["Семилуки","Воронежская обл.",51.687,39.017],["Богучар","Воронежская обл.",49.935,40.555]
+];
+const FAV = ["Москва","Алексин","Павловский Посад","Ярославль"];
+const cityNorm = s => String(s).toLowerCase().replace(/ё/g,"е").replace(/\s*\(.*\)\s*/,"").trim();
+function findCity(v){ if (!v) return null; const n = cityNorm(v); return CITIES.find(c=>cityNorm(c[0]) === n) || null; }
+function haversine(a, b){
+  const toR = x => x*Math.PI/180, dLat = toR(b[2]-a[2]), dLon = toR(b[3]-a[3]);
+  const h = Math.sin(dLat/2)**2 + Math.cos(toR(a[2]))*Math.cos(toR(b[2]))*Math.sin(dLon/2)**2;
+  return 2*6371*Math.asin(Math.sqrt(h));
+}
+function autoKm(from, to){
+  const a = findCity(from), b = findCity(to); if (!a || !b) return null;
+  if (a === b) return num(S.cityKm, 30);
+  return Math.max(num(S.cityKm,30), Math.round(haversine(a,b)*num(S.roadK,1.1)/5)*5);
+}
+function fillCities(){
+  const fav = FAV.map(f=>CITIES.find(c=>c[0]===f)).filter(Boolean);
+  const rest = CITIES.filter(c=>!FAV.includes(c[0])).sort((a,b)=>a[0].localeCompare(b[0],"ru"));
+  $("cityList").innerHTML = fav.concat(rest).map(c=>`<option value="${esc(c[0])}">${esc(c[1])}${FAV.includes(c[0])?" ★":""}</option>`).join("");
+  $("favs").innerHTML = FAV.map(f=>`<button type="button" class="chip" data-fav="${esc(f)}">${esc(f)}</button>`).join("");
+}
+const tripPrice = (T, km, vatMode) => vatMode === "with" ? Math.max(num(T.min), km*num(T.rate)) : Math.max(num(T.minN), km*num(T.rateN));
+// подбор машины: каждая модель отдельно и комбинации «несколько больших + одна меньше»
+function chooseTrucks(pals, km, vatMode){
+  const fits = S.trucks.map(T=>{
+    const f = truckFit(T, pals), one = tripPrice(T, km, vatMode);
+    return Object.assign(f, {one, n: f.tooHigh ? Infinity : f.trucks, tot: f.tooHigh ? Infinity : one*f.trucks, label:T.name});
+  });
+  const opts = fits.filter(f=>isFinite(f.tot)).map(f=>({label:(f.n>1?f.n+" × ":"") + f.T.name, tot:f.tot, n:f.n, parts:[[f.T,f.n]], f}));
+  fits.forEach(big=>{
+    if (!isFinite(big.n) || big.n < 2) return;
+    const k = big.n - 1, lenR = Math.max(0, big.len - k*big.T.L), kgR = Math.max(0, big.kg - k*big.T.kg);
+    fits.forEach(sm=>{
+      if (sm === big || sm.T.kg >= big.T.kg || sm.tooHigh) return;
+      if (lenR <= sm.T.L && kgR <= sm.T.kg && sm.T.W >= big.T.W - 1)
+        opts.push({label:`${k} × ${big.T.name} + ${sm.T.name}`, tot: big.one*k + sm.one, n:k+1, parts:[[big.T,k],[sm.T,1]], f:big});
+    });
+  });
+  const best = opts.length ? opts.reduce((x,y)=> (y.tot < x.tot || (y.tot === x.tot && y.n < x.n)) ? y : x) : null;
+  return {fits, opts, best};
+}
+function buildPals(rows){
+  const pals = [];
+  rows.forEach((x,i)=>{ const b = x.pal; if (b) for (let j=0;j<b.pallets;j++){ const last = j===b.pallets-1; pals.push({item:i, own:true, P:b.P, h:last?b.lastH:b.fullH, kg:last?b.kgLast:b.kgFull}); } });
+  MANUAL.forEach((m,k)=>{ const b = bestPallet(m); if (b) for (let j=0;j<b.pallets;j++){ const last = j===b.pallets-1; pals.push({item:rows.length+k, own:false, P:b.P, h:last?b.lastH:b.fullH, kg:last?b.kgLast:b.kgFull}); } });
+  return pals;
+}
+
+/* ======================= КОНСТРУКЦИИ ======================= */
+const CONS = [
+  {id:"0200", name:"0200 — без верхних клапанов", grp:"02", m:"geo", type:"glued", flaps:(PL,PW)=>[0, PW/2]},
+  {id:"0201", name:"0201 — четырёхклапанный, клапаны встык", grp:"02", m:"geo", type:"glued", flaps:(PL,PW)=>[PW/2, PW/2]},
+  {id:"0202", name:"0202 — наружные клапаны внахлёст", grp:"02", m:"geo", type:"glued", flaps:(PL,PW,ov)=>[PW/2+ov/2, PW/2+ov/2]},
+  {id:"0203", name:"0203 — клапаны полностью внахлёст", grp:"02", m:"geo", type:"glued", flaps:(PL,PW)=>[PW, PW]},
+  {id:"0204", name:"0204 — внутр. клапаны встык, наружные с зазором", grp:"02", m:"geo", type:"glued", flaps:(PL,PW)=>[PL/2, PL/2]},
+  {id:"0711", name:"0711 — с автодном (оценка)", grp:"02", m:"est", type:"glued", flaps:(PL,PW)=>[PW/2, 0.75*PW]},
+  {id:"OB",   name:"Обечайка (рукав) без клапанов", grp:"02", m:"geo", type:"glued", flaps:()=>[0,0]},
+  {id:"0215", name:"0215 — «ласточкин хвост» с крышкой", grp:"02", m:"pk", type:"die",
+     blank:(L,W,H)=>[[2*(L+W)+60, 2*W+H+30]], cols:(L,W,H)=>[L,W,L,W], rows:(L,W,H)=>[W,H,W]},
+  {id:"0301", name:"0301 — крышка+дно однобортные (под степлер)", grp:"03", m:"pk", type:"two",
+     blank:(L,W,H)=>[[L+2*H+25, W+2*H+25],[L+2*H+34, W+2*H+41]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,W,H]},
+  {id:"0307", name:"0307 — крышка+дно самосборные однобортные", grp:"03", m:"pk", type:"two",
+     blank:(L,W,H)=>[[L+2*H+25, W+2*H+25],[L+2*H+34, W+2*H+41]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,W,H]},
+  {id:"0330", name:"0330 — крышка+дно двубортные с замками", grp:"03", m:"pk", type:"two",
+     blank:(L,W,H)=>[[L+2*H+25, W+4*H+50],[L+4*H+58, W+2*H+46]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,H,W,H,H]},
+  {id:"0331", name:"0331 — крышка+дно двубортные", grp:"03", m:"pk", type:"two",
+     blank:(L,W,H)=>[[L+2*H+25, W+4*H+40],[L+4*H+48, W+2*H+46]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,H,W,H,H]},
+  {id:"0422", name:"0422 — лоток двубортный по ширине", grp:"04", m:"pk", type:"die",
+     blank:(L,W,H)=>[[L+4*H+50, W+2*H+30]], cols:(L,W,H)=>[H,H,L,H,H], rows:(L,W,H)=>[H,W,H]},
+  {id:"0423", name:"0423 — лоток двубортный по длине", grp:"04", m:"pk", type:"die",
+     blank:(L,W,H)=>[[L+2*H+30, W+4*H+50]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,H,W,H,H]},
+  {id:"0426", name:"0426 — короб под пиццу", grp:"04", m:"pk", type:"die",
+     blank:(L,W,H)=>[[L+2*H+30, 2*W+4*H+50]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,H,W,H,W,H]},
+  {id:"0427", name:"0427 — самосборный с «ушками»", grp:"04", m:"pk", type:"die",
+     blank:(L,W,H)=>[[L+4*H+70, 2*W+3*H+40]], cols:(L,W,H)=>[H,H,L,H,H], rows:(L,W,H)=>[H,H,W,H,W]},
+  {id:"0457", name:"0457 — лоток однобортный", grp:"04", m:"pk", type:"die",
+     blank:(L,W,H)=>[[L+2*H+30, W+2*H+30]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,W,H]},
+  {id:"TV",   name:"Лоток двубортный «Телевизор»", grp:"04", m:"pk", type:"die",
+     blank:(L,W,H)=>[[L+2*H+120, W+4*H+50]], cols:(L,W,H)=>[H,L,H], rows:(L,W,H)=>[H,H,W,H,H]},
+  {id:"SHEET",name:"Лист гофрокартона (Д × Ш)", grp:"L", m:"sheet", type:"sheet"}
+];
+const conById = id => CONS.find(c=>c.id===id) || CONS[1];
+const METHOD = {geo:"Расчёт по геометрии (зависит от профиля)", est:"Оценка: сверить со штампом завода", pk:"Формула «Про Картон»: оценка площади, схема, точный контур по штампу", sheet:"Лист"};
+
+function calcBlank(con, L, W, H, prof){
+  const p = S.profiles[prof] || S.profiles.B, tr = num(S.trim);
+  if (con.type === "sheet"){
+    const l = L + tr, w = W + tr;
+    return {parts:[{l,w}], area:l*w/1e6, flat:{a:Math.max(l,w), b:Math.min(l,w), s:p.t}};
+  }
+  if (con.type === "glued"){
+    const PL = L + p.aP, PW = W + p.aP;
+    const [ft, fb] = con.flaps(PL, PW, num(S.ov0202));
+    const body = con.id === "0200" ? H + p.aH/2 : (con.id === "OB" ? H : H + p.aH);
+    const len = 2*PL + 2*PW + p.G + tr;
+    const wid = ft + body + fb + tr;
+    return {parts:[{l:len, w:wid}], area:len*wid/1e6,
+            flat:{a:Math.max(PL+PW, wid), b:Math.min(PL+PW, wid), s:2*p.t},
+            geo:{PL, PW, G:p.G, ft, body, fb, tr}};
+  }
+  const bl = con.blank(L, W, H).map(([l,w]) => ({l:l+tr, w:w+tr}));
+  const area = bl.reduce((s,b)=>s + b.l*b.w, 0)/1e6;
+  const a = Math.max(...bl.map(b=>Math.max(b.l,b.w))), b = Math.max(...bl.map(b=>Math.min(b.l,b.w)));
+  return {parts:bl, area, flat:{a, b, s:p.t*bl.length}};
+}
+
+/* ======================= ЭКОНОМИКА ======================= */
+function econ(o){
+  const v = num(S.vat)/100, tax = num(S.tax)/100, q = Math.max(1, o.qty);
+  const buyG = o.buyVat === "with" ? o.buy : o.buy*(1+v);
+  const buyN = o.buyVat === "with" ? o.buy/(1+v) : o.buy;
+  const cartG = o.area*buyG, cartN = o.area*buyN;
+  let delG, delN, delAdd;
+  if (o.delVat === "with"){ delG = o.del/q; delN = o.del/(1+v)/q; delAdd = o.del/q; }
+  else { delG = o.del/q; delN = o.del/q; delAdd = o.del*(1+v)/q; }
+  const onceG = o.once/q, onceN = o.once/(1+v)/q, onceAdd = o.onceIn ? onceG : 0;
+  const breakEven = cartG + delAdd + onceAdd;
+  let sale;
+  switch(o.mmode){
+    case "m2": sale = cartG + o.area*o.mval + delAdd + onceAdd; break;
+    case "pc": sale = cartG + o.mval + delAdd + onceAdd; break;
+    case "pct": sale = cartG*(1+o.mval/100) + delAdd + onceAdd; break;
+    case "pricem2": sale = o.area*o.mval; break;
+    case "pricepc": sale = o.mval; break;
+    default: sale = breakEven;
+  }
+  const costG = cartG + delG + onceG, costN = cartN + delN + onceN;
+  const margin = sale - costG;
+  const vatPay = sale*v/(1+v) - (costG - costN);
+  const pre = sale/(1+v) - costN;
+  const ptax = Math.max(0, pre)*tax;
+  const net = pre - ptax;
+  return {v, cartG, cartN, delG, delN, delAdd, onceG, onceN, onceAdd, breakEven, sale,
+          costG, costN, margin, vatPay, pre, ptax, net, rev:sale/(1+v), ros: sale > 0 ? net/(sale/(1+v)) : NaN};
+}
+
+/* ======================= МАРКИ ======================= */
+function gradeInfo(name){
+  if (String(name).startsWith("MICRO-")){ const g = S.grades.find(x=>x.name===name.slice(6)) || {kg:0.5}; return {name:name.slice(6)+" микрогофра", ply:3, kg:g.kg*0.85, micro:true}; }
+  return S.grades.find(x=>x.name===name) || S.grades[0];
+}
+function profList(grade){ const g = gradeInfo(grade); return g.micro ? ["E"] : (g.ply === 5 ? ["BC"] : ["B","C","E"]); }
+
+/* ======================= РАСЧЁТ ВСЕГО ЗАКАЗА ======================= */
+let CALC = null;
+function computeOrder(){
+  const O = ORDER;
+  const rows = O.items.map(it=>{
+    const con = conById(it.con);
+    const L = num(it.L), W = num(it.W), H = num(it.H), qty = Math.max(1, Math.round(num(it.qty,1)));
+    const r = calcBlank(con, L, W, H, it.prof);
+    const g = gradeInfo(it.grade);
+    const kgPc = r.area * g.kg;
+    const loadIt = {a:Math.round(r.flat.a), b:Math.round(r.flat.b), s:r1(r.flat.s), kg:kgPc, qty, pal:it.pal || "auto"};
+    const pal = bestPallet(loadIt);
+    return {it, con, L, W, H, qty, r, g, kgPc, loadIt, pal};
+  });
+  // доставка: авто по маршруту или вручную
+  let del = num(O.del), DEL = null;
+  if (O.delMode === "auto"){
+    const pals = buildPals(rows);
+    const kmA = autoKm(O.from, O.to), km = num(O.km) > 0 ? num(O.km) : kmA;
+    DEL = {km, kmA, pals, ownPals: pals.filter(p=>p.own).length};
+    if (km && pals.length){
+      Object.assign(DEL, chooseTrucks(pals, km, O.delVat));
+      const ownKg = pals.filter(p=>p.own).reduce((a,p)=>a+p.kg,0), allKg = pals.reduce((a,p)=>a+p.kg,0);
+      DEL.share = allKg > 0 ? ownKg/allKg : 1;
+      DEL.total = DEL.best ? DEL.best.tot : 0;
+      del = DEL.total * DEL.share;
+    } else del = 0;
+    DEL.cost = del;
+  }
+  const w = rows.map(x => O.split === "m2" ? x.r.area*x.qty : O.split === "pal" ? (x.pal ? x.qty/x.pal.per : 0) : x.kgPc*x.qty);
+  const tw = w.reduce((a,b)=>a+b,0);
+  rows.forEach((x,i)=>{
+    x.delShare = tw > 0 ? del*w[i]/tw : (rows.length ? del/rows.length : 0);
+    x.e = econ({area:x.r.area, qty:x.qty, buy:num(x.it.buy), buyVat:O.buyVat, mmode:x.it.mmode, mval:num(x.it.mval),
+                del:x.delShare, delVat:O.delVat, once:num(x.it.once), onceIn:x.it.onceIn === "1"});
+    x.has = num(x.it.buy) > 0;
+  });
+  const T = {area:0, kg:0, sale:0, cost:0, margin:0, vatPay:0, pre:0, ptax:0, net:0, rev:0, breakEven:0};
+  rows.forEach(x=>{
+    T.area += x.r.area*x.qty; T.kg += x.kgPc*x.qty;
+    if (!x.has) return;
+    const q = x.qty, e = x.e;
+    T.sale += e.sale*q; T.cost += e.costG*q; T.margin += e.margin*q; T.vatPay += e.vatPay*q;
+    T.pre += e.pre*q; T.ptax += e.ptax*q; T.net += e.net*q; T.rev += e.rev*q; T.breakEven += e.breakEven*q;
+  });
+  T.allPriced = rows.every(x=>x.has);
+  T.anyPriced = rows.some(x=>x.has);
+  CALC = {rows, T, DEL, del};
+  return CALC;
+}
+
+/* ======================= ЧЕРТЁЖ ======================= */
+function svgOpen(w, h, pad, k=48){
+  const fs = Math.max(w, h)/k;
+  return {fs, open:`<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pad} ${-pad} ${w+2*pad} ${h+2*pad}" font-family="Arial" font-size="${fs}">`};
+}
+const CUT = `stroke="#111" stroke-width="1.6" vector-effect="non-scaling-stroke" fill="none"`;
+const CR  = `stroke="#d32f2f" stroke-width="1.2" stroke-dasharray="6 4" vector-effect="non-scaling-stroke" fill="none"`;
+const DIM = `stroke="#1f5f99" stroke-width="0.8" vector-effect="non-scaling-stroke" fill="none"`;
+function dimH(x1, x2, y, txt, fs){
+  const t = fs*0.35;
+  return `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" ${DIM}/><line x1="${x1}" y1="${y-t}" x2="${x1}" y2="${y+t}" ${DIM}/><line x1="${x2}" y1="${y-t}" x2="${x2}" y2="${y+t}" ${DIM}/>`+
+         `<text x="${(x1+x2)/2}" y="${y-fs*0.3}" text-anchor="middle" fill="#1f5f99">${txt}</text>`;
+}
+function dimV(y1, y2, x, txt, fs){
+  const t = fs*0.35, tx = x + fs*0.4;
+  return `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" ${DIM}/><line x1="${x-t}" y1="${y1}" x2="${x+t}" y2="${y1}" ${DIM}/><line x1="${x-t}" y1="${y2}" x2="${x+t}" y2="${y2}" ${DIM}/>`+
+         `<text x="${tx}" y="${(y1+y2)/2}" fill="#1f5f99" dominant-baseline="middle" transform="rotate(-90 ${tx} ${(y1+y2)/2})" style="text-anchor:middle">${txt}</text>`;
+}
+// Значок направления гофры (перерисован с образца). dir "1" — линии вертикально, "2" — поперёк
+function fluteIcon(cx, cy, h, dir){
+  const k = h/118, sw = `stroke="#2a7f7f" stroke-width="1.3" vector-effect="non-scaling-stroke"`;
+  const yDiag = x => 2 + (x-8)*60/38;
+  let g = `<path d="M8 2 L8 120 L40 120 Q32 90 46 62 Z" ${sw} fill="#fff"/>`;
+  [13.5, 19, 24.5, 30, 35.5].forEach(x => g += `<line x1="${x}" y1="${yDiag(x).toFixed(1)}" x2="${x}" y2="120" ${sw}/>`);
+  const rot = dir === "2" ? ` rotate(90)` : "";
+  return `<g transform="translate(${cx} ${cy})${rot} scale(${k}) translate(-27 -61)">${g}</g>`;
+}
+function drawGlued(g, total, dir){
+  const {PL, PW, G, ft, body, fb} = g;
+  const Lb = G + 2*PL + 2*PW, Wb = ft + body + fb;
+  const pad = Math.max(Lb, Wb)*0.12;
+  const {fs, open} = svgOpen(Lb, Wb, pad);
+  let s = open;
+  const xs = [G, G+PL, G+PL+PW, G+2*PL+PW, Lb];
+  const ch = Math.min(G*0.4, body*0.1);
+  s += `<path d="M${G} 0 H${Lb} V${Wb} H${G} Z" ${CUT}/>`;
+  s += `<path d="M${G} ${ft} L0 ${ft+ch} L0 ${ft+body-ch} L${G} ${ft+body}" ${CUT}/>`;
+  for (let i=1;i<4;i++){
+    if (ft>0) s += `<line x1="${xs[i]}" y1="0" x2="${xs[i]}" y2="${ft}" ${CUT}/>`;
+    if (fb>0) s += `<line x1="${xs[i]}" y1="${ft+body}" x2="${xs[i]}" y2="${Wb}" ${CUT}/>`;
+  }
+  if (ft>0) s += `<line x1="${G}" y1="${ft}" x2="${Lb}" y2="${ft}" ${CR}/>`;
+  if (fb>0) s += `<line x1="${G}" y1="${ft+body}" x2="${Lb}" y2="${ft+body}" ${CR}/>`;
+  for (let i=0;i<4;i++) s += `<line x1="${xs[i]}" y1="${ft}" x2="${xs[i]}" y2="${ft+body}" ${CR}/>`;
+  const yTop = -fs*1.2;
+  s += dimH(0, G, yTop, r1(G), fs);
+  [PL,PW,PL,PW].forEach((w,i)=>{ s += dimH(xs[i], xs[i]+w, yTop, r1(w), fs); });
+  s += dimH(0, Lb, Wb + fs*2.2, "Длина заготовки " + r1(total.l) + " мм", fs);
+  const xR = Lb + fs*1.2;
+  if (ft>0) s += dimV(0, ft, xR, r1(ft), fs);
+  s += dimV(ft, ft+body, xR, r1(body), fs);
+  if (fb>0) s += dimV(ft+body, Wb, xR, r1(fb), fs);
+  s += dimV(0, Wb, Lb + fs*3.2, "Ширина " + r1(total.w), fs);
+  ["Д","Ш","Д","Ш"].forEach((t,i)=>{ s += `<text x="${xs[i]+([PL,PW,PL,PW][i])/2}" y="${ft+body/2}" text-anchor="middle" dominant-baseline="middle" fill="#888" font-size="${fs*1.3}">${t}</text>`; });
+  { const ih = Math.min(body*0.78, PL*0.5, fs*7); s += fluteIcon(G + PL*0.22, ft + body/2, ih, dir); }
+  return s + `</svg>`;
+}
+function drawGrid(l, w, cols, rows, x0, y0, fs, title, dir){
+  const sc = cols.reduce((a,b)=>a+b,0), sr = rows.reduce((a,b)=>a+b,0);
+  const mx = Math.max(0,(l - sc)/2), my = Math.max(0,(w - sr)/2);
+  let s = `<rect x="${x0}" y="${y0}" width="${l}" height="${w}" ${CUT}/>`;
+  let x = x0 + mx; const xs = [x]; cols.forEach(c=>{ x += c; xs.push(x); });
+  let y = y0 + my; const ys = [y]; rows.forEach(r=>{ y += r; ys.push(y); });
+  if (cols.length) xs.forEach(xx => s += `<line x1="${xx}" y1="${ys[0]}" x2="${xx}" y2="${ys[ys.length-1]}" ${CR}/>`);
+  if (rows.length) ys.forEach(yy => s += `<line x1="${xs[0]}" y1="${yy}" x2="${xs[xs.length-1]}" y2="${yy}" ${CR}/>`);
+  s += dimH(x0, x0+l, y0 - fs*1.2, r1(l), fs);
+  s += dimV(y0, y0+w, x0 + l + fs*1.2, r1(w), fs);
+  if (title) s += `<text x="${x0}" y="${y0 - fs*2.6}" font-weight="bold">${title}</text>`;
+  if (dir){
+    const ci = Math.floor(cols.length/2), ri = Math.floor(rows.length/2);
+    const cx0 = cols.length ? xs[ci] : x0, cw = cols.length ? cols[ci] : l, cy0 = rows.length ? ys[ri] : y0, chh = rows.length ? rows[ri] : w;
+    const ih = Math.min(chh*0.7, cw*0.6, fs*7);
+    s += fluteIcon(cx0 + cw/2, cy0 + chh/2, ih, dir);
+  }
+  return s;
+}
+function drawBlank(con, L, W, H, r, dir="1"){
+  if (con.type === "glued") return drawGlued(r.geo, r.parts[0], dir);
+  if (con.type === "sheet"){
+    const {l,w} = r.parts[0], pad = Math.max(l,w)*0.12;
+    const {fs, open} = svgOpen(l, w, pad, 30);
+    return open + drawGrid(l, w, [], [], 0, 0, fs, "", dir) + `</svg>`;
+  }
+  if (con.type === "two"){
+    const [a, b] = r.parts, gap = Math.max(a.l, b.l)*0.15;
+    const tw = a.l + gap + b.l, th = Math.max(a.w, b.w), pad = Math.max(tw, th)*0.1;
+    const {fs, open} = svgOpen(tw, th, pad, 30);
+    const cols = con.cols(L,W,H), rows = con.rows(L,W,H);
+    return open + drawGrid(a.l, a.w, cols, rows, 0, 0, fs, "Дно", dir) +
+      drawGrid(b.l, b.w, b.l > a.l + H ? [H,H,L,H,H] : cols, [H,W,H], a.l+gap, 0, fs, "Крышка", dir) + `</svg>`;
+  }
+  const {l, w} = r.parts[0], pad = Math.max(l,w)*0.12;
+  const {fs, open} = svgOpen(l, w, pad, 30);
+  return open + drawGrid(l, w, con.cols(L,W,H), con.rows(L,W,H), 0, 0, fs, "", dir) + `</svg>`;
+}
+const itemTitle = (x, i) => (x.it.name ? x.it.name : "Изделие " + (i+1));
+const SHORT = {SHEET:"Лист", OB:"Обечайка", TV:"Лоток «Телевизор»"};
+const itemDesc = x => (SHORT[x.con.id] || x.con.id) + " · " + (x.con.type==="sheet" ? `${x.L}×${x.W}` : `${x.L}×${x.W}×${x.H}`) + " · " + x.g.name + " " + x.it.prof;
+
+/* ======================= UI: ФОРМА ИЗДЕЛИЯ ======================= */
+function fillSelects(){
+  const cs = $("c_con"); cs.innerHTML = "";
+  const grpN = {"02":"Серия 02 — склеиваемые короба", "03":"Серия 03 — крышка + дно", "04":"Серия 04 — вырубные самосборные", "L":"Листовой картон"};
+  Object.keys(grpN).forEach(g=>{
+    const og = document.createElement("optgroup"); og.label = grpN[g];
+    CONS.filter(c=>c.grp===g).forEach(c=>{ const o = document.createElement("option"); o.value = c.id; o.textContent = c.name; og.appendChild(o); });
+    cs.appendChild(og);
+  });
+  $("c_grade").innerHTML = S.grades.map(g=>`<option value="${g.name}">${g.name}</option>`).join("") +
+    `<option value="MICRO-Т-22">Т-22 микрогофра (E)</option><option value="MICRO-Т-23">Т-23 микрогофра (E)</option>`;
+}
+const FIELDS = ["con","name","L","W","H","grade","prof","color","print","qty","buy","mmode","mval","once","oncein"];
+function loadForm(){
+  const it = ORDER.items[ORDER.sel];
+  $("c_con").value = it.con; $("c_name").value = it.name || ""; $("c_L").value = it.L; $("c_W").value = it.W; $("c_H").value = it.H;
+  $("c_grade").value = it.grade;
+  const pl = profList(it.grade); $("c_prof").innerHTML = pl.map(p=>`<option>${p}</option>`).join("");
+  if (!pl.includes(it.prof)) it.prof = pl[0];
+  $("c_prof").value = it.prof; $("c_color").value = it.color; $("c_print").value = it.print; $("c_flute").value = it.flute || "1";
+  $("c_qty").value = it.qty; $("c_buy").value = it.buy; $("c_mmode").value = it.mmode; $("c_mval").value = it.mval;
+  $("c_once").value = it.once; $("c_oncein").value = it.onceIn;
+  $("formTitle").textContent = "Изделие " + (ORDER.sel+1) + (it.name ? ": " + it.name : "");
+}
+function readForm(){
+  const it = ORDER.items[ORDER.sel];
+  const prevGrade = it.grade;
+  it.con = $("c_con").value; it.name = $("c_name").value; it.L = $("c_L").value; it.W = $("c_W").value; it.H = $("c_H").value;
+  it.grade = $("c_grade").value; it.color = $("c_color").value; it.print = $("c_print").value; it.flute = $("c_flute").value;
+  if (prevGrade !== it.grade){
+    const pl = profList(it.grade); $("c_prof").innerHTML = pl.map(p=>`<option>${p}</option>`).join("");
+    $("c_prof").value = pl.includes($("c_prof").value) ? $("c_prof").value : pl[0];
+  }
+  it.prof = $("c_prof").value;
+  it.qty = $("c_qty").value; it.buy = $("c_buy").value; it.mmode = $("c_mmode").value; it.mval = $("c_mval").value;
+  it.once = $("c_once").value; it.onceIn = $("c_oncein").value;
+  ORDER.buyVat = radio("g_buyvat"); ORDER.del = $("g_del").value; ORDER.delMode = radio("g_delmode");
+  ORDER.from = $("g_from").value; ORDER.to = $("g_to").value; ORDER.km = $("g_km").value; ORDER.delVat = radio("g_delvat"); ORDER.split = $("g_split").value;
+  ORDER.client = $("g_client").value; ORDER.person = $("g_person").value; ORDER.kpno = $("g_kpno").value;
+  ORDER.addr = $("g_addr").value; ORDER.pay = $("g_pay").value; ORDER.valid = $("g_valid").value;
+}
+function loadGlobal(){
+  setRadio("g_buyvat", ORDER.buyVat); $("g_del").value = ORDER.del; setRadio("g_delmode", ORDER.delMode);
+  $("g_from").value = ORDER.from || ""; $("g_to").value = ORDER.to || ""; $("g_km").value = ORDER.km || ""; setRadio("g_delvat", ORDER.delVat);
+  $("g_split").value = ORDER.split || "kg"; $("g_client").value = ORDER.client || "";
+  $("g_person").value = ORDER.person || ""; $("g_kpno").value = ORDER.kpno || ""; $("g_addr").value = ORDER.addr || "";
+  $("g_pay").value = ORDER.pay ?? "100% предоплата"; $("g_valid").value = ORDER.valid || "";
+}
+function saveOrder(){ lsSet(LS_ORDER, ORDER); }
+
+/* ======================= ОТРИСОВКА СТОИМОСТИ ======================= */
+function recalc(){
+  const {rows, T} = computeOrder();
+  const sel = rows[ORDER.sel], it = sel.it;
+  const v = num(S.vat);
+  const isSheet = sel.con.type === "sheet";
+  $("lbl_H").style.opacity = isSheet ? .4 : 1; $("c_H").disabled = isSheet;
+  const mlabels = {m2:"Наценка, ₽/м²", pc:"Наценка, ₽/шт", pct:"Наценка, %", pricem2:"Цена продажи, ₽/м² с НДС", pricepc:"Цена продажи, ₽/шт с НДС"};
+  $("lbl_mval").firstChild.textContent = mlabels[it.mmode];
+  $("formTitle").textContent = "Изделие " + (ORDER.sel+1) + (it.name ? ": " + it.name : "");
+
+  // список изделий
+  $("itemsCount").textContent = rows.length + " шт";
+  $("itemList").innerHTML = rows.map((x,i)=>`
+    <div class="item ${i===ORDER.sel?'sel':''}" data-sel="${i}">
+      <span class="swatch" style="background:${COLORS[i%COLORS.length]}"></span>
+      <div class="t"><b>${i+1}. ${esc(itemTitle(x,i))}</b><span>${esc(itemDesc(x))} · ${fmt0(x.qty)} шт</span></div>
+      <div class="p">${x.has ? rub(x.e.sale)+"/шт<br><span class='"+(x.e.net<0?"bad":"good")+"'>"+rub(x.e.net*x.qty,0)+"</span>" : "<span class='warn'>нет цены</span>"}</div>
+    </div>`).join("");
+
+  // доставка
+  const del = CALC.del, D = CALC.DEL;
+  $("autoDel").style.display = ORDER.delMode === "auto" ? "" : "none";
+  $("manDel").style.display = ORDER.delMode === "auto" ? "none" : "";
+  if (ORDER.delMode === "auto"){
+    const toOk = findCity(ORDER.to), fromOk = findCity(ORDER.from);
+    $("kmInfo").innerHTML = D.kmA ? `авто ≈ ${fmt0(D.kmA)} км по дороге${num(ORDER.km)>0?" · указано вручную":""}` :
+      ((ORDER.from && !fromOk) || (ORDER.to && !toOk) ? `<span class="warn">город не найден — укажите км</span>` : "");
+    const vatW = ORDER.delVat === "with" ? "с НДС" : "без НДС";
+    if (!D.km) $("delBox").innerHTML = `<span class="warn">Укажите, откуда и куда везти, — машина и стоимость доставки посчитаются сами.</span>`;
+    else if (!D.pals.length) $("delBox").innerHTML = `Нет груза для расчёта.`;
+    else if (!D.best) $("delBox").innerHTML = `<span class="bad">Груз не помещается ни в одну машину (паллет выше кузова). Проверьте вкладку «Загрузка».</span>`;
+    else {
+      const b = D.best;
+      const how = b.parts.map(([T,n])=>`${n>1?n+" × ":""}${esc(T.name)}: ${fmt0(D.km)} км × ${fmt(ORDER.delVat==="with"?num(T.rate):num(T.rateN),1)} ₽/км` + (tripPrice(T,D.km,ORDER.delVat) > D.km*(ORDER.delVat==="with"?num(T.rate):num(T.rateN)) + 0.01 ? " → минимальный заказ" : "") + ` = ${rub(tripPrice(T,D.km,ORDER.delVat),0)}`).join("; ");
+      $("delBox").innerHTML = `${esc(ORDER.from)} → ${esc(ORDER.to)}, ${fmt0(D.km)} км · ${D.ownPals} паллет${D.pals.length>D.ownPals?` (+${D.pals.length-D.ownPals} чужих)`:""}<br>
+        Нужна машина: <b class="big">${esc(b.label)}</b><br>Стоимость рейса: <b class="big">${rub(b.tot,0)}</b> ${vatW}<br><span class="note" style="margin:0">${how}</span>` +
+        (D.share < 0.999 ? `<br>Сборная машина: на этот заказ приходится ${fmt(D.share*100,0)}% по весу = <b>${rub(del,0)}</b>` : "");
+    }
+  } else $("delBox").innerHTML = "";
+  $("delBox").style.display = ORDER.delMode === "auto" ? "" : "none";
+  const splitN = {kg:"по весу", m2:"по площади", pal:"по паллетам"}[ORDER.split];
+  $("delNote").innerHTML = del > 0
+    ? `Рейс ${fmt0(del)} ₽ делится между изделиями ${splitN}. ` + (ORDER.delVat === "with"
+        ? `Цена перевозки с НДС: в цену 1 шт добавляется доля рейса / тираж, НДС перевозчика к вычету.`
+        : `Перевозчик без НДС: в цену 1 шт добавляется доля рейса × ${fmt(1+v/100,2)} / тираж, чтобы после уплаты НДС доставка была покрыта.`) +
+      `<br>` + rows.map((x,i)=>`${i+1}) ${rub(x.delShare,0)} → +${rub(x.e.delAdd)}/шт`).join("; ")
+    : "";
+
+  // итоги
+  $("kpis").innerHTML = [
+    ["Выручка с НДС", T.anyPriced ? rub(T.sale,0) : "—"],
+    ["Картон, м²", fmt(T.area,1)],
+    ["Вес, кг", fmt0(T.kg)],
+    ["Доставка", del > 0 ? rub(del,0) + (D && D.best ? `<div class="l" style="font-weight:400">${esc(D.best.label)}</div>` : "") : "—"],
+    ["Чистая прибыль", T.anyPriced ? rub(T.net,0) : "—", T.anyPriced ? (T.net>=0?"good":"bad") : ""]
+  ].map(x=>`<div class="kpi ${x[2]||''}"><div class="l">${x[0]}</div><div class="v">${x[1]}</div></div>`).join("");
+  let h = `<tr><th>#</th><th>Изделие</th><th class="n">Тираж</th><th class="n">м²</th><th class="n">Доставка</th><th class="n">Цена/шт</th><th class="n">Сумма с НДС</th><th class="n">Прибыль до налога</th><th class="n">Чистая прибыль</th></tr>`;
+  rows.forEach((x,i)=>{
+    h += `<tr class="${i===ORDER.sel?'hl':''}" data-sel="${i}" style="cursor:pointer"><td><span class="swatch" style="background:${COLORS[i%COLORS.length]}"></span>${i+1}</td><td>${esc(itemTitle(x,i))}<br><span class="note">${esc(itemDesc(x))}</span></td>
+      <td class="n">${fmt0(x.qty)}</td><td class="n">${fmt(x.r.area*x.qty,1)}</td><td class="n">${rub(x.delShare,0)}</td>
+      <td class="n">${x.has?rub(x.e.sale):"—"}</td><td class="n">${x.has?rub(x.e.sale*x.qty,0):"—"}</td>
+      <td class="n">${x.has?rub(x.e.pre*x.qty,0):"—"}</td><td class="n ${x.has&&x.e.net<0?'bad':''}">${x.has?rub(x.e.net*x.qty,0):"—"}</td></tr>`;
+  });
+  h += `<tr class="total"><td></td><td>Итого</td><td class="n">${fmt0(rows.reduce((s,x)=>s+x.qty,0))}</td><td class="n">${fmt(T.area,1)}</td><td class="n">${rub(del,0)}</td><td></td>
+    <td class="n">${T.anyPriced?rub(T.sale,0):"—"}</td><td class="n">${T.anyPriced?rub(T.pre,0):"—"}</td><td class="n">${T.anyPriced?rub(T.net,0):"—"}</td></tr>`;
+  $("sumTable").innerHTML = h;
+  $("sumNote").innerHTML = T.anyPriced
+    ? `По всему заказу: маржа с НДС ${rub(T.margin,0)} · НДС к уплате ${rub(T.vatPay,0)} · прибыль до налога ${rub(T.pre,0)} · налог на прибыль ${rub(T.ptax,0)} · <b>чистая прибыль ${rub(T.net,0)}</b>` +
+      (T.rev>0 ? ` · рентабельность ${fmt(T.net/T.rev*100,1)} %` : "") +
+      (T.allPriced ? "" : `<br><span class="warn">Не у всех изделий указана закупочная цена: они не вошли в выручку и прибыль.</span>`)
+    : "Введите закупочную цену за м² у изделий, чтобы посчитать стоимость и прибыль.";
+
+  // чертёж
+  $("drawTitle").textContent = `Развёртка: изделие ${ORDER.sel+1}, ${sel.con.name}`;
+  $("drawing").innerHTML = (sel.L>0 && sel.W>0 && (isSheet || sel.H>0)) ? drawBlank(sel.con, sel.L, sel.W, sel.H, sel.r, sel.it.flute || "1") : "<p style='padding:20px'>Введите размеры</p>";
+  $("drawMethod").textContent = METHOD[sel.con.m];
+  $("fluteLeg").innerHTML = `<svg viewBox="-32 -32 64 64" width="26" height="26">${fluteIcon(0,0,60,sel.it.flute||"1")}</svg> направление гофры ${sel.it.flute||"1"}`;
+  $("drawMethod").style.color = (sel.con.m === "geo" || sel.con.m === "sheet") ? "var(--muted)" : "var(--warn)";
+
+  // детали по выбранному
+  const e = sel.e, q = sel.qty, has = sel.has;
+  $("detTitle").textContent = `Детально: изделие ${ORDER.sel+1}` + (it.name ? ", " + it.name : "");
+  const sz = sel.r.parts.map((p,i)=> (sel.r.parts.length>1 ? (i? "крышка ":"дно ") : "") + fmt0(p.l) + " × " + fmt0(p.w) + " мм").join("; ");
+  const R = [
+    ["Размер заготовки", sz, "", 0, 1],
+    ["Площадь, м²", fmt(sel.r.area,4), fmt(sel.r.area*q,1), 0, 1],
+    ["Вес (ориентир), кг", fmt(sel.kgPc,3), fmt(sel.kgPc*q,0), 0, 1],
+    ["Закупка картона, с НДС", rub(e.cartG), rub(e.cartG*q,0)],
+    ["Доставка: добавка в цену", rub(e.delAdd), rub(e.delAdd*q,0)],
+  ];
+  if (num(it.once)>0) R.push(["Клише/штамп" + (it.onceIn==="1"?" (в цене)":" (не в цене)"), rub(e.onceG), rub(num(it.once),0)]);
+  R.push(["Цена в ноль (с НДС)", rub(e.breakEven), rub(e.breakEven*q,0), "hl"]);
+  R.push(["Цена продажи (с НДС)", rub(e.sale), rub(e.sale*q,0), "hl"]);
+  R.push(["Цена продажи за м² (с НДС)", rub(e.sale/sel.r.area), ""]);
+  R.push(["Маржа с НДС (выручка − затраты)", rub(e.margin), rub(e.margin*q,0)]);
+  R.push([`НДС к уплате (${v}% минус вычеты)`, rub(e.vatPay), rub(e.vatPay*q,0)]);
+  R.push(["Прибыль до налога на прибыль", rub(e.pre), rub(e.pre*q,0), "total"]);
+  R.push([`Налог на прибыль (${num(S.tax)}%)`, rub(e.ptax), rub(e.ptax*q,0)]);
+  R.push(["Чистая прибыль", rub(e.net), rub(e.net*q,0), "total"]);
+  R.push(["Рентабельность продаж", isFinite(e.ros)? fmt(e.ros*100,1)+" %":"—", ""]);
+  $("resTable").innerHTML = `<tr><th></th><th class="n">на 1 шт</th><th class="n">на тираж ${fmt0(q)} шт</th></tr>` +
+    R.map(x=>`<tr class="${x[3]||''}"><td>${x[0]}</td><td class="n">${has||x[4]?x[1]:"—"}</td><td class="n">${has||x[4]?x[2]:"—"}</td></tr>`).join("");
+  $("resNote").innerHTML = has ? (e.net < 0 ? `<span class="bad">Цена ниже точки безубыточности.</span> ` : "") +
+     `Прибыль считается при условии, что завод работает с НДС. «Маржа с НДС» — разница между деньгами от клиента и тем, что заплатили заводу и перевозчику.`
+     : "Введите закупочную цену за м² для этого изделия.";
+
+  renderAll();
+  saveOrder();
+  if ($("t-load").classList.contains("active")) renderLoad();
+}
+
+/* ======================= ВСЕ КОНСТРУКЦИИ ======================= */
+function renderAll(){
+  if (!CALC) return;
+  const x = CALC.rows[ORDER.sel], it = x.it, g = x.g;
+  $("allNote").textContent = `Изделие ${ORDER.sel+1}: ${x.L} × ${x.W} × ${x.H} мм, ${g.name}, профиль ${it.prof}, тираж ${fmt0(x.qty)} шт. Доставка — доля этого изделия.`;
+  let h = `<tr><th>Конструкция</th><th>Метод</th><th class="n">Заготовка, мм</th><th class="n">Площадь, м²</th><th class="n">Вес, кг</th><th class="n">Закупка 1 шт</th><th class="n">Продажа 1 шт</th><th class="n">Чистая прибыль 1 шт</th></tr>`;
+  CONS.forEach(con=>{
+    const r = calcBlank(con, x.L, x.W, x.H, it.prof);
+    const e = econ({area:r.area, qty:x.qty, buy:num(it.buy), buyVat:ORDER.buyVat, mmode:it.mmode, mval:num(it.mval), del:x.delShare, delVat:ORDER.delVat, once:num(it.once), onceIn:it.onceIn==="1"});
+    const has = x.has;
+    h += `<tr class="${con.id===x.con.id?'hl':''}"><td>${esc(con.name)}</td><td style="font-size:12px;color:var(--muted)">${{geo:"геометрия",est:"оценка",pk:"Про Картон",sheet:"лист"}[con.m]}</td>
+      <td class="n">${r.parts.map(p=>fmt0(p.l)+"×"+fmt0(p.w)).join(" + ")}</td><td class="n">${fmt(r.area,4)}</td><td class="n">${fmt(r.area*g.kg,3)}</td>
+      <td class="n">${has?rub(e.cartG):"—"}</td><td class="n">${has?rub(e.sale):"—"}</td><td class="n ${has&&e.net<0?'bad':''}">${has?rub(e.net):"—"}</td></tr>`;
+  });
+  $("allTable").innerHTML = h;
+}
+
+/* ======================= ЗАГРУЗКА ======================= */
+function perLayer(a, b, P){
+  const ov = num(S.over), PL = P.L + 2*ov, PW = P.W + 2*ov;
+  const o1 = Math.floor(PL/a)*Math.floor(PW/b), o2 = Math.floor(PL/b)*Math.floor(PW/a);
+  if (o1 === 0 && o2 === 0) return {n:1, rot:false, overhang:true, nx:1, ny:1};
+  if (o1 >= o2) return {n:o1, rot:false, nx:Math.floor(PL/a), ny:Math.floor(PW/b), overhang:a>P.L||b>P.W};
+  return {n:o2, rot:true, nx:Math.floor(PL/b), ny:Math.floor(PW/a), overhang:b>P.L||a>P.W};
+}
+function palletCalc(it, P){
+  const maxH = num(($("l_maxh")||{}).value, 2200);
+  const lay = perLayer(it.a, it.b, P);
+  const layers = Math.max(0, Math.floor((maxH - P.h) / Math.max(0.1, it.s)));
+  let per = lay.n * layers, limitedByKg = false;
+  if (it.kg > 0){ const byKg = Math.floor(num(S.palKg)/it.kg); if (byKg < per){ per = byKg; limitedByKg = true; } }
+  if (per <= 0) return null;
+  const pallets = Math.ceil(it.qty / per);
+  const lastQty = it.qty - per*(pallets-1);
+  return {P, lay, per, pallets, lastQty, limitedByKg,
+    fullH: P.h + Math.ceil(per/lay.n)*it.s, lastH: P.h + Math.ceil(lastQty/lay.n)*it.s,
+    fill: lay.n * it.a * it.b / (P.L*P.W), kgFull: per*it.kg + 25, kgLast: lastQty*it.kg + 25};
+}
+function bestPallet(it){
+  const opts = S.pallets.map(P=>palletCalc(it, P)).filter(Boolean);
+  if (it.pal && it.pal !== "auto"){ const f = opts.find(o=>o.P.name===it.pal); if (f) return f; }
+  opts.sort((x,y)=> (x.lay.overhang - y.lay.overhang) || (x.pallets - y.pallets) || (y.fill - x.fill));
+  return opts[0] || null;
+}
+function floorLen(N, a, b, W){
+  if (N<=0) return {len:0, rows:[]};
+  const c1 = Math.floor(W/b), c2 = Math.floor(W/a);
+  let best = null;
+  for (let k=0;k<=N;k++){
+    if (c1 === 0 && k>0) break;
+    const rest = Math.max(0, N - k*c1);
+    if (c2 === 0 && rest > 0) continue;
+    const m = c2 ? Math.ceil(rest/c2) : 0;
+    const len = k*a + m*b;
+    if (!best || len < best.len) best = {len, k, m, c1, c2};
+    if (rest === 0) break;
+  }
+  if (!best) return {len:Infinity, rows:[]};
+  const rows = []; let left = N;
+  for (let i=0;i<best.k;i++){ const n = Math.min(best.c1, left); rows.push({n, along:a, across:b}); left -= n; }
+  for (let i=0;i<best.m;i++){ const n = Math.min(best.c2, left); rows.push({n, along:b, across:a}); left -= n; }
+  return {len:best.len, rows};
+}
+function truckFit(T, pals){
+  const stack = $("l_stack").checked;
+  let kg = 0, tooHigh = false;
+  pals.forEach(p=>{ kg += p.kg; if (p.h > T.H) tooHigh = true; });
+  let len = 0; const layout = [];
+  S.pallets.forEach(P=>{
+    const list = pals.filter(p=>p.P.name===P.name).sort((x,y)=>y.h-x.h);
+    const spots = [], low = [];
+    list.forEach(p=>{ if (stack && p.h*2 <= T.H) low.push(p); else spots.push([p]); });
+    for (let i=0;i<low.length;i+=2) spots.push(low.slice(i,i+2));
+    const f = floorLen(spots.length, P.L, P.W, T.W);
+    len += f.len; layout.push({P, spots, rows:f.rows});
+  });
+  const fits = len <= T.L && kg <= T.kg && !tooHigh;
+  const trucks = Math.max(Math.ceil(len / T.L), Math.ceil(kg / T.kg), 1);
+  return {T, len, kg, fits, tooHigh, layout, trucks};
+}
+function loadRows(){
+  if (!CALC) computeOrder();
+  const auto = CALC.rows.map((x,i)=>({src:"calc", idx:i, name:`${i+1}. ${itemTitle(x,i)} — ${itemDesc(x)}`,
+     a:x.loadIt.a, b:x.loadIt.b, s:x.loadIt.s, kg:Math.round(x.kgPc*1000)/1000, qty:x.qty, pal:x.it.pal||"auto"}));
+  const man = MANUAL.map((m,i)=>Object.assign({src:"man", idx:i}, m));
+  return auto.concat(man);
+}
+function renderLoad(){
+  const LR = loadRows();
+  let h = `<tr><th>#</th><th>Позиция</th><th class="n">Сложен., мм<br>длина</th><th class="n">ширина</th><th class="n">Толщина<br>1 шт, мм</th><th class="n">Вес<br>1 шт, кг</th><th class="n">Кол-во, шт</th><th>Паллет</th><th class="n">На паллете</th><th class="n">Паллет</th><th class="n">Высота, мм</th><th class="n">Вес паллета, кг</th><th></th></tr>`;
+  const pals = [];
+  LR.forEach((it, i)=>{
+    const b = bestPallet(it);
+    if (b) for (let j=0;j<b.pallets;j++){ const last = j === b.pallets-1;
+      pals.push({item:i, P:b.P, h:last?b.lastH:b.fullH, kg:last?b.kgLast:b.kgFull}); }
+    const warn = b ? [b.lay.overhang?"свес":"", b.limitedByKg?"огр. по весу":""].filter(Boolean).join(", ") : "не помещается";
+    const ro = it.src === "calc" ? "readonly" : "";
+    const d = `data-src="${it.src}" data-i="${it.idx}"`;
+    h += `<tr>
+      <td><span class="swatch" style="background:${COLORS[i%COLORS.length]}"></span>${i+1}</td>
+      <td style="min-width:220px">${it.src==="calc" ? `<span>${esc(it.name)}</span><br><span class="note">из расчёта</span>` : `<input ${d} data-k="name" value="${esc(it.name)}">`}</td>
+      <td><input ${d} data-k="a" type="number" value="${it.a}" style="width:80px" ${ro}></td>
+      <td><input ${d} data-k="b" type="number" value="${it.b}" style="width:80px" ${ro}></td>
+      <td><input ${d} data-k="s" type="number" step="any" value="${it.s}" style="width:70px" ${ro}></td>
+      <td><input ${d} data-k="kg" type="number" step="any" value="${it.kg}" style="width:80px" ${ro}></td>
+      <td><input ${d} data-k="qty" type="number" value="${it.qty}" style="width:90px" ${ro}></td>
+      <td><select ${d} data-k="pal" style="width:130px"><option value="auto">авто${b&&it.pal==="auto"?" ("+b.P.name+")":""}</option>${S.pallets.map(P=>`<option ${it.pal===P.name?"selected":""}>${P.name}</option>`).join("")}</select></td>
+      <td class="n">${b?fmt0(b.per):"—"}<br><span class="note">${b?b.lay.n+" × "+Math.ceil(b.per/b.lay.n)+" сл.":""}</span></td>
+      <td class="n"><b>${b?b.pallets:"—"}</b>${b&&b.pallets>1&&b.lastQty<b.per?`<br><span class="note">посл.: ${fmt0(b.lastQty)} шт</span>`:""}</td>
+      <td class="n">${b?fmt0(b.fullH):"—"}</td>
+      <td class="n">${b?fmt0(b.kgFull):"—"}${warn?`<br><span class="warn" style="font-size:12px">${warn}</span>`:""}</td>
+      <td>${it.src==="man"?`<button class="btn del" data-delman="${it.idx}" title="Удалить">✕</button>`:""}</td></tr>`;
+  });
+  $("loadTable").innerHTML = h;
+  const totKg = pals.reduce((s,p)=>s+p.kg,0);
+  const byType = S.pallets.map(P=>`${pals.filter(p=>p.P.name===P.name).length} шт ${P.name}`).join(", ");
+  const D = CALC && CALC.DEL;
+  const km = D && D.km ? D.km : null;
+  const ch = km ? chooseTrucks(pals, km, ORDER.delVat) : null;
+  const fits = ch ? ch.fits : S.trucks.map(T=>truckFit(T, pals));
+  const rec = ch && ch.best ? ch.best.f : fits.find(f=>f.fits);
+  $("loadKpis").innerHTML = [
+    ["Позиций", LR.length],
+    ["Паллет всего", pals.length + (pals.length? `<div class="l" style="font-weight:400">${byType}</div>`:"")],
+    ["Вес груза с поддонами, кг", fmt0(totKg)],
+    ["Рекомендуемая машина", pals.length ? (ch && ch.best ? esc(ch.best.label) + `<div class="l" style="font-weight:400">${rub(ch.best.tot,0)} ${ORDER.delVat==="with"?"с НДС":"без НДС"}, ${fmt0(km)} км</div>` : (rec ? rec.T.name : "больше 1 машины")) : "—", rec ? "good" : (pals.length?"bad":"")]
+  ].map(x=>`<div class="kpi ${x[2]||''}"><div class="l">${x[0]}</div><div class="v">${x[1]}</div></div>`).join("");
+  $("truckTable").innerHTML = `<tr><th>Машина</th><th class="n">Кузов, мм</th><th class="n">Пол занят, м</th><th class="n">Загрузка по полу</th><th class="n">Загрузка по весу</th><th>Итог</th><th class="n">Рейс ${ORDER.delVat==="with"?"с НДС":"без НДС"}</th></tr>` +
+    fits.map(f=>`<tr class="${rec&&f.T===rec.T?'hl':''}"><td>${esc(f.T.name)}</td><td class="n">${fmt0(f.T.L)}×${fmt0(f.T.W)}×${fmt0(f.T.H)}</td>
+      <td class="n">${fmt(f.len/1000,2)} из ${fmt(f.T.L/1000,1)}</td><td class="n">${pals.length?fmt(f.len/f.T.L*100,0)+" %":"—"}</td>
+      <td class="n">${pals.length?fmt(f.kg/f.T.kg*100,0)+" %":"—"}</td>
+      <td>${!pals.length?"—": f.fits?'<span class="good">помещается</span>' : `<span class="bad">${f.tooHigh?"паллет выше кузова; ":""}нужно ≈ ${f.trucks} шт</span>`}</td><td class="n">${km && pals.length && isFinite(f.tot) ? rub(f.tot,0) : "—"}</td></tr>`).join("") +
+    (ch && ch.best && ch.best.parts.length > 1 ? `<tr class="hl"><td colspan="6"><b>${esc(ch.best.label)}</b> — комбинация машин, выгоднее всего</td><td class="n"><b>${rub(ch.best.tot,0)}</b></td></tr>` : "");
+  const sel = $("l_truck"), keep = sel.value;
+  sel.innerHTML = S.trucks.map((T,i)=>`<option value="${i}">${esc(T.name)}</option>`).join("");
+  sel.value = sel.dataset.user && S.trucks[keep] ? keep : String(rec ? S.trucks.indexOf(rec.T) : S.trucks.length-1);
+  drawTruck(fits[+sel.value], pals);
+  drawPallets(LR);
+}
+function drawTruck(f, pals){
+  if (!f || !pals.length){ $("truckSvg").innerHTML = `<p class="note">Нет позиций для загрузки.</p>`; return; }
+  const T = f.T, Lv = Math.max(T.L, f.len), pad = 300, fs = 220;
+  let s = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${-pad} ${-pad*2} ${Lv+2*pad} ${T.W+pad*3}" style="width:100%;min-width:640px;height:auto" font-family="Arial" font-size="${fs}">`;
+  s += `<rect x="0" y="0" width="${T.L}" height="${T.W}" fill="#f3f5f8" stroke="#555" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+  s += `<text x="0" y="${-pad*0.8}" fill="#333">${esc(T.name)}: кузов ${fmt0(T.L)} × ${fmt0(T.W)} мм · кабина слева</text>`;
+  s += `<rect x="${-pad*0.9}" y="${T.W*0.15}" width="${pad*0.7}" height="${T.W*0.7}" fill="#cfd6e0"/>`;
+  let x = 0;
+  f.layout.forEach(l=>{
+    let idx = 0;
+    l.rows.forEach(row=>{
+      for (let j=0;j<row.n;j++){
+        const sp = l.spots[idx++]; if (!sp) continue;
+        const px = x + 15, py = j*row.across + 15, w = row.along - 30, hh = row.across - 30;
+        s += `<rect x="${px}" y="${py}" width="${w}" height="${hh}" fill="${COLORS[sp[0].item % COLORS.length]}" fill-opacity=".8" stroke="#fff" stroke-width="1" vector-effect="non-scaling-stroke" rx="20"/>`;
+        s += `<text x="${px+w/2}" y="${py+hh/2}" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-weight="bold">${sp.map(p=>p.item+1).join("/")}${sp.length>1?" ×2":""}</text>`;
+      }
+      x += row.along;
+    });
+  });
+  if (f.len > T.L) s += `<line x1="${T.L}" y1="-50" x2="${T.L}" y2="${T.W+50}" stroke="#c62828" stroke-width="3" vector-effect="non-scaling-stroke"/><text x="${T.L+40}" y="${T.W+pad*0.7}" fill="#c62828">не помещается</text>`;
+  s += `<text x="0" y="${T.W+pad*0.7}" fill="#666">Цифра — номер позиции; «×2» — два паллета в два яруса. Занято ${fmt(f.len/1000,2)} м пола.</text>`;
+  $("truckSvg").innerHTML = s + `</svg>`;
+}
+function drawPallets(LR){
+  $("palletGrid").innerHTML = LR.map((it,i)=>{
+    const b = bestPallet(it); if (!b) return `<div class="pcard"><b>${i+1}.</b> ${esc(it.name)}<br><span class="bad">не помещается на паллет</span></div>`;
+    const P = b.P, lay = b.lay, ia = lay.rot ? it.b : it.a, ib = lay.rot ? it.a : it.b;
+    const tw = Math.max(P.L, lay.nx*ia), th = Math.max(P.W, lay.ny*ib), pad = 60;
+    let s = `<svg viewBox="${-pad} ${-pad} ${tw+2*pad} ${th+2*pad}"><rect x="0" y="0" width="${P.L}" height="${P.W}" fill="#e8d9b8" stroke="#8a6d3b" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    const ox = (P.L - lay.nx*ia)/2, oy = (P.W - lay.ny*ib)/2;
+    for (let x=0;x<lay.nx;x++) for (let y=0;y<lay.ny;y++)
+      s += `<rect x="${ox+x*ia}" y="${oy+y*ib}" width="${ia}" height="${ib}" fill="${COLORS[i%COLORS.length]}" fill-opacity=".55" stroke="#333" stroke-width="1" vector-effect="non-scaling-stroke"/>`;
+    s += `</svg>`;
+    return `<div class="pcard"><b>${i+1}.</b> ${esc(it.name)}${s}
+      Паллет ${P.name}: ${lay.n} шт в слое × ${Math.ceil(b.per/lay.n)} слоёв = <b>${fmt0(b.per)} шт</b><br>
+      Высота ${fmt0(b.fullH)} мм, вес ≈ ${fmt0(b.kgFull)} кг · паллет: <b>${b.pallets}</b>
+      ${lay.overhang?'<br><span class="warn">Изделие больше паллета — свес. Нужен паллет под размер или укладка с выступом.</span>':""}</div>`;
+  }).join("") || `<p class="note">Нет позиций.</p>`;
+}
+
+/* ======================= НАСТРОЙКИ ======================= */
+function renderSettings(){
+  if (!S.company) S.company = JSON.parse(JSON.stringify(DEF.company));
+  document.querySelectorAll('[data-set^="company."]').forEach(el=>{ el.value = S.company[el.dataset.set.split(".")[1]] || ""; });
+  $("s_vat").value = S.vat; $("s_tax").value = S.tax; $("s_ov").value = S.ov0202; $("s_trim").value = S.trim;
+  $("s_palkg").value = S.palKg; $("s_over").value = S.over;
+  $("profTable").innerHTML = `<tr><th>Профиль</th><th>Толщина t</th><th>aP (на панель)</th><th>aH (на высоту)</th><th>Клапан склейки G</th></tr>` +
+    Object.keys(S.profiles).map(p=>`<tr><td><b>${p}</b></td>${["t","aP","aH","G"].map(k=>`<td><input type="number" step="any" data-set="profiles.${p}.${k}" value="${S.profiles[p][k]}"></td>`).join("")}</tr>`).join("");
+  $("gradeTable").innerHTML = `<tr><th>Марка</th><th>Слойность</th><th>Масса 1 м², кг</th></tr>` +
+    S.grades.map((g,i)=>`<tr><td><b>${g.name}</b></td><td>${g.ply}-слойный</td><td><input type="number" step="any" data-set="grades.${i}.kg" value="${g.kg}"></td></tr>`).join("");
+  $("palTable").innerHTML = `<tr><th>Паллет</th><th>Длина</th><th>Ширина</th><th>Высота поддона</th></tr>` +
+    S.pallets.map((P,i)=>`<tr><td><b>${P.name}</b></td>${["L","W","h"].map(k=>`<td><input type="number" data-set="pallets.${i}.${k}" value="${P[k]}"></td>`).join("")}</tr>`).join("");
+  $("truckSetTable").innerHTML = `<tr><th>Название</th><th>Длина, мм</th><th>Ширина, мм</th><th>Высота, мм</th><th>Грузоподъёмность, кг</th><th class="n">Объём, м³</th><th>Ставка с НДС, ₽/км</th><th>Мин. заказ с НДС, ₽</th><th>Ставка без НДС, ₽/км</th><th>Мин. заказ без НДС, ₽</th></tr>` +
+    S.trucks.map((T,i)=>`<tr><td><input data-set="trucks.${i}.name" value="${esc(T.name)}" style="width:80px"></td>${["L","W","H","kg"].map(k=>`<td><input type="number" data-set="trucks.${i}.${k}" value="${T[k]}" style="width:90px"></td>`).join("")}<td class="n">${fmt(T.L*T.W*T.H/1e9,1)}</td>${["rate","min","rateN","minN"].map(k=>`<td><input type="number" step="any" data-set="trucks.${i}.${k}" value="${T[k]}" style="width:95px"></td>`).join("")}</tr>`).join("");
+  $("s_roadK").value = S.roadK; $("s_cityKm").value = S.cityKm;
+}
+function setPath(path, val){
+  const ks = path.split("."); let o = S;
+  for (let i=0;i<ks.length-1;i++) o = o[ks[i]];
+  const last = ks[ks.length-1];
+  o[last] = (last === "name" || ks[0] === "company") ? val : num(val);
+  if (ks[0] === "trucks" && last === "rate") o.rateN = Math.round(num(val)/(1+num(S.vat)/100)*10)/10;
+  if (ks[0] === "trucks" && last === "min") o.minN = Math.round(num(val)/(1+num(S.vat)/100)/100)*100;
+}
+function saveSettings(){ lsSet(LS_SET, S); $("saveNote").textContent = "Сохранено"; setTimeout(()=>$("saveNote").textContent="", 1200); }
+
+/* ======================= WORD (DOCX) ======================= */
+// --- ZIP (без сжатия) ---
+const CRC_T = (()=>{ const t = new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for (let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for (let i=0;i<u8.length;i++) c = CRC_T[(c^u8[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function makeZip(files){ // files: [{name, data:Uint8Array}]
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  files.forEach(f=>{
+    const nm = enc.encode(f.name), d = f.data, crc = crc32(d);
+    const h = new DataView(new ArrayBuffer(30));
+    h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true);
+    h.setUint16(10,0,true); h.setUint16(12,0x21,true); h.setUint32(14,crc,true); h.setUint32(18,d.length,true); h.setUint32(22,d.length,true);
+    h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+    parts.push(new Uint8Array(h.buffer), nm, d);
+    const c = new DataView(new ArrayBuffer(46));
+    c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true);
+    c.setUint16(12,0,true); c.setUint16(14,0x21,true); c.setUint32(16,crc,true); c.setUint32(20,d.length,true); c.setUint32(24,d.length,true);
+    c.setUint16(28,nm.length,true); c.setUint16(30,0,true); c.setUint16(32,0,true); c.setUint16(34,0,true); c.setUint16(36,0,true);
+    c.setUint32(38,0,true); c.setUint32(42,off,true);
+    central.push(new Uint8Array(c.buffer), nm);
+    off += 30 + nm.length + d.length;
+  });
+  const cdSize = central.reduce((s,a)=>s+a.length,0);
+  const e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true);
+  e.setUint32(12,cdSize,true); e.setUint32(16,off,true);
+  return new Blob([...parts, ...central, new Uint8Array(e.buffer)], {type:"application/vnd.openxmlformats-officedocument.wordprocessingml.document"});
+}
+// --- элементы документа ---
+const X = s => String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function wRun(text, o={}){
+  const pr = `<w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>${o.b?"<w:b/>":""}${o.i?"<w:i/>":""}${o.color?`<w:color w:val="${o.color}"/>`:""}<w:sz w:val="${o.sz||20}"/><w:szCs w:val="${o.sz||20}"/></w:rPr>`;
+  return String(text).split("\n").map((t,k)=>`<w:r>${pr}${k?"<w:br/>":""}<w:t xml:space="preserve">${X(t)}</w:t></w:r>`).join("");
+}
+function wP(runs, o={}){
+  if (typeof runs === "string" && !runs.startsWith("<w:r>")) runs = wRun(runs, o);
+  return `<w:p><w:pPr><w:spacing w:before="${o.before||0}" w:after="${o.after??80}"/>${o.align?`<w:jc w:val="${o.align}"/>`:""}${o.keep?"<w:keepNext/>":""}</w:pPr>${runs}</w:p>`;
+}
+const wBreak = () => `<w:p><w:r><w:br w:type="page"/></w:r></w:p>`;
+function wTable(rows, widths, o={}){ // rows: [[cell,...]], cell: string | {t, b, align, fill, sz}
+  const bd = o.noBorder ? "nil" : "single";
+  const brd = `<w:tblBorders>${["top","left","bottom","right","insideH","insideV"].map(s=>`<w:${s} w:val="${bd}" w:sz="4" w:space="0" w:color="A6A6A6"/>`).join("")}</w:tblBorders>`;
+  let x = `<w:tbl><w:tblPr><w:tblW w:w="${widths.reduce((a,b)=>a+b,0)}" w:type="dxa"/>${brd}<w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="50" w:type="dxa"/><w:left w:w="90" w:type="dxa"/><w:bottom w:w="50" w:type="dxa"/><w:right w:w="90" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid>${widths.map(w=>`<w:gridCol w:w="${w}"/>`).join("")}</w:tblGrid>`;
+  rows.forEach((r, ri)=>{
+    x += `<w:tr>${ri===0&&o.header?"<w:trPr><w:tblHeader/></w:trPr>":""}`;
+    r.forEach((c, ci)=>{
+      const cell = typeof c === "object" ? c : {t:c};
+      const head = o.header && ri === 0;
+      const fill = cell.fill || (head ? "1F4E78" : "");
+      x += `<w:tc><w:tcPr><w:tcW w:w="${widths[ci]}" w:type="dxa"/>${fill?`<w:shd w:val="clear" w:color="auto" w:fill="${fill}"/>`:""}</w:tcPr>` +
+        wP(wRun(cell.t, {b:cell.b||head, sz:cell.sz||(o.sz||18), color: head ? "FFFFFF" : cell.color}), {after:0, align:cell.align}) + `</w:tc>`;
+    });
+    x += `</w:tr>`;
+  });
+  return x + `</w:tbl>`;
+}
+function wImage(rid, id, cxEmu, cyEmu){
+  return `<w:p><w:pPr><w:spacing w:after="60"/><w:jc w:val="center"/></w:pPr><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cxEmu}" cy="${cyEmu}"/><wp:docPr id="${id}" name="Чертёж ${id}"/>` +
+    `<a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">` +
+    `<pic:nvPicPr><pic:cNvPr id="${id}" name="image${id}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="${rid}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill>` +
+    `<pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cxEmu}" cy="${cyEmu}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
+}
+function buildDocx(bodyXml, images, landscape){
+  const enc = new TextEncoder();
+  const sect = landscape
+    ? `<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/><w:pgMar w:top="680" w:right="680" w:bottom="680" w:left="680" w:header="400" w:footer="400" w:gutter="0"/></w:sectPr>`
+    : `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1000" w:right="900" w:bottom="1000" w:left="1100" w:header="500" w:footer="500" w:gutter="0"/></w:sectPr>`;
+  const doc = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${bodyXml}${sect}</w:body></w:document>`;
+  const ct = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/><Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  const drels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdS" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${images.map(im=>`<Relationship Id="${im.rid}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/${im.file}"/>`).join("")}</Relationships>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial" w:eastAsia="Arial"/><w:sz w:val="20"/><w:szCs w:val="20"/><w:lang w:val="ru-RU"/></w:rPr></w:rPrDefault><w:pPrDefault><w:pPr><w:spacing w:after="80" w:line="252" w:lineRule="auto"/></w:pPr></w:pPrDefault></w:docDefaults><w:style w:type="paragraph" w:default="1" w:styleId="Normal"><w:name w:val="Normal"/></w:style></w:styles>`;
+  return makeZip([
+    {name:"[Content_Types].xml", data:enc.encode(ct)},
+    {name:"_rels/.rels", data:enc.encode(rels)},
+    {name:"word/document.xml", data:enc.encode(doc)},
+    {name:"word/styles.xml", data:enc.encode(styles)},
+    {name:"word/_rels/document.xml.rels", data:enc.encode(drels)},
+    ...images.map(im=>({name:"word/media/"+im.file, data:im.data}))
+  ]);
+}
+// Сохранение: окно «Сохранить как» (Chrome/Edge), иначе — обычная загрузка
+async function saveFile(name, makeBlob){
+  name = name.replace(/[\\/:*?"<>|«»]+/g, "").replace(/\s+/g, "_");
+  if (window.showSaveFilePicker){
+    let h;
+    try{ h = await window.showSaveFilePicker({suggestedName:name, types:[{description:"Документ Word", accept:{"application/vnd.openxmlformats-officedocument.wordprocessingml.document":[".docx"]}}]}); }
+    catch(e){ if (e.name === "AbortError") return false; h = null; }
+    if (h){ const blob = await makeBlob(); const w = await h.createWritable(); await w.write(blob); await w.close(); return true; }
+  }
+  download(await makeBlob(), name); return true;
+}
+function download(blob, name){
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+// SVG -> PNG
+function svgToPng(svg, widthPx){
+  return new Promise((resolve, reject)=>{
+    const vb = (svg.match(/viewBox="([^"]+)"/)||[])[1].split(/\s+/).map(Number);
+    const ratio = vb[3]/vb[2], W = widthPx, H = Math.round(widthPx*ratio);
+    let s = svg.replace("<svg ", `<svg width="${W}" height="${H}" `)
+               .replace(/stroke-width="([\d.]+)"/g, (m,v)=>`stroke-width="${(+v*2).toFixed(2)}"`);
+    const img = new Image();
+    img.onload = () => {
+      const c = document.createElement("canvas"); c.width = W; c.height = H;
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0,0,W,H); g.drawImage(img,0,0,W,H);
+      c.toBlob(b => b.arrayBuffer().then(buf => resolve({data:new Uint8Array(buf), w:W, h:H})), "image/png");
+    };
+    img.onerror = () => reject(new Error("Не удалось подготовить изображение чертежа"));
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s);
+  });
+}
+const today = () => new Date().toLocaleDateString("ru-RU");
+const PRINT_N = ["без печати","печать 1 цвет","печать 2 цвета","печать 3 цвета","печать 4 цвета"];
+function prodDesc(x){
+  const it = x.it, nm = x.con.name.split(" — ");
+  const what = x.con.type === "sheet" ? `Лист гофрокартона ${x.L}×${x.W} мм`
+    : `${x.con.grp==="02"&&x.con.id!=="OB"&&x.con.id!=="0215"?"Гофрокороб":"Изделие"} ${/^\d{4}$/.test(nm[0]) ? "FEFCO " + nm[0] + (nm[1] ? " (" + nm[1] + ")" : "") : x.con.name}, внутр. размеры ${x.L}×${x.W}×${x.H} мм`;
+  return what + `\n${x.g.name}, профиль ${it.prof}, ${it.color}, ${PRINT_N[+it.print]}`;
+}
+
+/* ---------- Чертёж в Word ---------- */
+async function exportDrawings(list){
+  const name = list.length === 1 ? `Чертёж_${itemTitle(list[0][0], list[0][1])}_${list[0][0].con.id}.docx` : `Чертежи_${ORDER.client||"заказ"}_${today()}.docx`;
+  return saveFile(name, () => buildDrawings(list));
+}
+async function buildDrawings(list){
+  const C = S.company || {};
+  let body = "", images = [];
+  for (let k=0;k<list.length;k++){
+    const [x, i] = list[k], it = x.it;
+    const svg = drawBlank(x.con, x.L, x.W, x.H, x.r, it.flute || "1");
+    const png = await svgToPng(svg, 2000);
+    const rid = "rIdImg" + (k+1); images.push({rid, file:`image${k+1}.png`, data:png.data});
+    // ширина 27 см, высота не больше 10,5 см
+    let cx = 27*360000, cy = cx*png.h/png.w;
+    if (cy > 10.5*360000){ cy = 10.5*360000; cx = cy*png.w/png.h; }
+    const dims = x.con.type==="sheet" ? `${x.L} × ${x.W}` : `${x.L} × ${x.W} × ${x.H}`;
+    if (k) body += wBreak();
+    body += wP(wRun("Чертёж изделия на согласование: " + itemTitle(x,i), {b:true, sz:28, color:"1F4E78"}), {after:120});
+    body += wTable([
+      [{t:"Заказчик",b:true,fill:"F2F2F2"}, ORDER.client||"", {t:"Конструкция",b:true,fill:"F2F2F2"}, x.con.name, {t:"Внутр. размеры, мм",b:true,fill:"F2F2F2"}, dims],
+      [{t:"Марка / профиль",b:true,fill:"F2F2F2"}, `${x.g.name} / ${it.prof}; направление гофры ${it.flute||"1"}`, {t:"Цвет / печать",b:true,fill:"F2F2F2"}, `${it.color} / ${PRINT_N[+it.print]}`, {t:"Заготовка, мм",b:true,fill:"F2F2F2"}, x.r.parts.map(p=>fmt0(p.l)+" × "+fmt0(p.w)).join(" + ")],
+      [{t:"Тираж, шт",b:true,fill:"F2F2F2"}, fmt0(x.qty), {t:"Площадь 1 шт, м²",b:true,fill:"F2F2F2"}, fmt(x.r.area,4), {t:"Дата",b:true,fill:"F2F2F2"}, today()]
+    ], [2000,3300,1800,4200,2000,2170], {sz:18});
+    body += wImage(rid, k+1, Math.round(cx), Math.round(cy));
+    body += wP(wRun("Сплошная линия — рез, пунктир — биговка, значок — направление гофры. Размеры в мм." + (x.con.m!=="geo"&&x.con.m!=="sheet" ? " Схема: точный контур — по вырубному штампу." : ""), {sz:16, color:"595959"}), {after:200});
+    body += wTable([[
+      "Согласовано (заказчик):\n\n____________________ / ____________________ /\nподпись / ФИО\n\nДата: «___» ____________ 20___ г.",
+      `Поставщик${C.name ? ": " + C.name : ""}\n\n____________________ / ${C.person||"____________________"} /\nподпись / ФИО`
+    ]], [7735, 7735], {noBorder:true, sz:18});
+  }
+  return buildDocx(body, images, true);
+}
+
+/* ---------- КП в Word ---------- */
+async function exportKP(){
+  const {rows} = computeOrder();
+  const priced = rows.filter(x=>x.has);
+  if (!priced.length){ $("exportNote").innerHTML = `<span class="bad">Нет изделий с ценой: укажите закупку за м².</span>`; return; }
+  const C = S.company || {}, v = num(S.vat);
+  const valid = ORDER.valid ? new Date(ORDER.valid).toLocaleDateString("ru-RU") : "";
+  let body = "";
+  body += wP(wRun(C.name || "[Ваша компания]", {b:true, sz:28, color:"1F4E78"}), {after:0});
+  body += wP(wRun([C.phone, C.email, C.extra].filter(Boolean).join(" · ") || "[телефон · e-mail]", {sz:18, color:"595959"}), {after:240});
+  body += wTable([[
+    `Кому: ${ORDER.client || "________________"}${ORDER.person ? "\n" + ORDER.person : ""}`,
+    {t:`Дата: ${today()}${ORDER.kpno ? "\n№ " + ORDER.kpno : ""}`, align:"right"}
+  ]], [5000, 4900], {noBorder:true, sz:20});
+  body += wP(wRun("Коммерческое предложение", {b:true, sz:32}), {before:240, after:120});
+  body += wP(`${ORDER.person ? ORDER.person + ", добрый день!" : "Добрый день!"}`, {after:60});
+  body += wP(`Направляем расчёт гофроупаковки по вашему запросу. Цены указаны с НДС ${v}% и с доставкой${ORDER.addr ? " до адреса: " + ORDER.addr : (ORDER.to ? " до г. " + ORDER.to : " до вашего склада")}.`, {after:160});
+
+  const tr = [["№", "Наименование", "Тираж, шт", "Цена за шт, ₽", "Сумма, ₽"]];
+  let total = 0, n = 0;
+  priced.forEach(x=>{
+    n++; total += x.e.sale*x.qty;
+    tr.push([{t:String(n), align:"center"}, {t:(x.it.name ? x.it.name + "\n" : "") + prodDesc(x)}, {t:fmt0(x.qty), align:"right"}, {t:fmt(x.e.sale), align:"right"}, {t:fmt(x.e.sale*x.qty), align:"right"}]);
+    if (num(x.it.once) > 0 && x.it.onceIn !== "1"){
+      n++; total += num(x.it.once);
+      tr.push([{t:String(n), align:"center"}, `${x.con.type==="glued" ? "Печатная форма (клише)" : "Клише / вырубной штамп"} для поз. ${n-1}, разово`, {t:"1", align:"right"}, {t:fmt(num(x.it.once)), align:"right"}, {t:fmt(num(x.it.once)), align:"right"}]);
+    }
+  });
+  tr.push([{t:""}, {t:"Итого", b:true}, "", "", {t:fmt(total), b:true, align:"right"}]);
+  tr.push([{t:""}, {t:`в т.ч. НДС ${v}%`}, "", "", {t:fmt(total*v/(100+v)), align:"right"}]);
+  body += wTable(tr, [500, 5200, 1300, 1400, 1500], {header:true, sz:18});
+
+  const hasPrint = priced.some(x=>+x.it.print>0), hasDie = priced.some(x=>x.con.type==="die"||x.con.type==="two"||x.con.m==="est");
+  const cond = [
+    `Срок изготовления: 3–6 рабочих дней после согласования заказа.` + (hasPrint ? " Для нового дизайна печати +3–6 дней на изготовление клише." : "") + (hasDie ? " Для нового вырубного штампа +5–10 дней." : ""),
+    `Доставка: включена в стоимость${ORDER.addr ? ", до адреса: " + ORDER.addr : (ORDER.to ? ", до г. " + ORDER.to : "")}.`,
+    `Оплата: ${ORDER.pay || "100% предоплата"}.`,
+    `Минимальный заказ: от 1 000 м² на позицию.`,
+    valid ? `Цены действуют до ${valid}.` : `Цены действуют 10 рабочих дней: стоимость сырья меняется.`
+  ];
+  body += wP(wRun("Условия", {b:true, sz:22}), {before:240, after:80});
+  cond.forEach(c => body += wP("— " + c, {after:40}));
+  body += wP("Для запуска заказа подтвердите, пожалуйста, позиции и тиражи, адрес и время приёмки, реквизиты для договора и счёта.", {before:160, after:240});
+  body += wP("С уважением,", {after:0});
+  body += wP(wRun([C.person || "[ФИО]", [C.position, C.name].filter(Boolean).join(", "), [C.phone, C.email].filter(Boolean).join(" · "), C.extra].filter(Boolean).join("\n")), {after:0});
+  const ok = await saveFile(`КП_${ORDER.client || "клиент"}_${today()}.docx`, async () => buildDocx(body, [], false));
+  if (!ok){ $("exportNote").textContent = ""; return; }
+  const skipped = rows.length - priced.length;
+  $("exportNote").innerHTML = `КП сохранено.` + (skipped ? ` <span class="warn">${skipped} изд. без цены не вошли в КП.</span>` : "");
+}
+
+/* ======================= СОБЫТИЯ ======================= */
+document.querySelectorAll("#nav button").forEach(b=>b.addEventListener("click", ()=>{
+  document.querySelectorAll("#nav button").forEach(x=>x.classList.toggle("active", x===b));
+  document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active", t.id===b.dataset.tab));
+  if (b.dataset.tab === "t-load") renderLoad();
+}));
+const onForm = () => { readForm(); recalc(); };
+$("t-cost").addEventListener("input", e=>{ if (e.target.closest(".card") && e.target.matches("input,select")) onForm(); });
+$("t-cost").addEventListener("change", e=>{ if (e.target.matches("input,select")) onForm(); });
+function selectItem(i){ ORDER.sel = i; loadForm(); recalc(); }
+$("itemList").addEventListener("mousedown", e=>{ const el = e.target.closest("[data-sel]"); if (el) selectItem(+el.dataset.sel); });
+$("sumTable").addEventListener("mousedown", e=>{ const el = e.target.closest("[data-sel]"); if (el) selectItem(+el.dataset.sel); });
+$("btnNew").addEventListener("click", ()=>{
+  const cur = ORDER.items[ORDER.sel], n = NEW_ITEM();
+  n.grade = cur.grade; n.prof = cur.prof; n.buy = cur.buy; n.mmode = cur.mmode; n.mval = cur.mval;
+  ORDER.items.push(n); selectItem(ORDER.items.length-1); $("c_name").focus();
+});
+$("btnCopy").addEventListener("click", ()=>{
+  const c = JSON.parse(JSON.stringify(ORDER.items[ORDER.sel])); c.name = c.name ? c.name + " (копия)" : "";
+  ORDER.items.splice(ORDER.sel+1, 0, c); selectItem(ORDER.sel+1);
+});
+$("btnDelItem").addEventListener("click", ()=>{
+  if (ORDER.items.length === 1){ ORDER.items = [NEW_ITEM()]; selectItem(0); return; }
+  if (!confirm("Удалить изделие " + (ORDER.sel+1) + "?")) return;
+  ORDER.items.splice(ORDER.sel, 1); selectItem(Math.max(0, ORDER.sel-1));
+});
+const runExport = async (list) => { $("exportNote").textContent = "Готовлю файл…"; try{ const ok = await exportDrawings(list); $("exportNote").textContent = ok ? (list.length>1 ? "Чертежи сохранены." : "Чертёж сохранён.") : ""; }catch(err){ $("exportNote").innerHTML = `<span class="bad">${esc(err.message)}</span>`; } };
+$("btnDraw").addEventListener("click", ()=>{ computeOrder(); runExport([[CALC.rows[ORDER.sel], ORDER.sel]]); });
+$("btnDrawAll").addEventListener("click", ()=>{ computeOrder(); runExport(CALC.rows.map((x,i)=>[x,i])); });
+$("btnKP").addEventListener("click", exportKP);
+
+$("loadTable").addEventListener("change", e=>{
+  const t = e.target, src = t.dataset.src, i = +t.dataset.i, k = t.dataset.k; if (!src) return;
+  if (src === "calc"){ if (k === "pal"){ ORDER.items[i].pal = t.value; saveOrder(); computeOrder(); } }
+  else { MANUAL[i][k] = (k === "name" || k === "pal") ? t.value : num(t.value); lsSet(LS_MAN, MANUAL); }
+  computeOrder(); recalc(); renderLoad();
+});
+$("loadTable").addEventListener("click", e=>{
+  const d = e.target.dataset.delman; if (d === undefined) return;
+  MANUAL.splice(+d, 1); lsSet(LS_MAN, MANUAL); reAll();
+});
+$("btnAddManual").addEventListener("click", ()=>{ MANUAL.push({name:"Груз вручную", a:800, b:600, s:6, kg:0.3, qty:1000, pal:"auto"}); lsSet(LS_MAN, MANUAL); reAll(); });
+const reAll = () => { computeOrder(); recalc(); renderLoad(); };
+$("l_maxh").addEventListener("change", reAll);
+$("l_stack").addEventListener("change", reAll);
+$("favs").addEventListener("mousedown", e=>{ const f = e.target.dataset.fav; if (!f) return; e.preventDefault(); $("g_from").value = f; $("g_km").value = ""; readForm(); recalc(); });
+["g_from","g_to"].forEach(id=>{ $(id).addEventListener("input", ()=>{ $("g_km").value = ""; }); $(id).addEventListener("focus", e=>e.target.select()); });
+$("l_truck").addEventListener("change", e=>{ e.target.dataset.user = "1"; renderLoad(); });
+$("t-set").addEventListener("change", e=>{
+  const t = e.target;
+  if (t.dataset.set) setPath(t.dataset.set, t.value);
+  const map = {s_vat:"vat", s_tax:"tax", s_ov:"ov0202", s_trim:"trim", s_palkg:"palKg", s_over:"over", s_roadK:"roadK", s_cityKm:"cityKm"};
+  if (map[t.id]) S[map[t.id]] = num(t.value);
+  saveSettings(); if (t.dataset.set && t.dataset.set.startsWith("trucks.")) renderSettings(); reAll();
+});
+$("btnReset").addEventListener("click", ()=>{ if (!confirm("Вернуть все настройки по умолчанию?")) return;
+  S = JSON.parse(JSON.stringify(DEF)); saveSettings(); renderSettings(); fillSelects(); loadForm(); reAll(); });
+
+/* ======================= ГОЛОСОВОЙ РЕЖИМ ======================= */
+const VOICE = { last:"", rec:null, listening:false, voice:null, pending:null, known:new WeakMap() };
+const ASK_ORDER = ["con","dims","grade","prof","qty","buy","markup","route"];
+const QUESTIONS = {
+  con:"Какая конструкция? Например: ноль двести один, самосборный ноль четыреста двадцать семь или лист.",
+  dims:"Какие внутренние размеры? Длина на ширину на высоту, в миллиметрах.",
+  dimsSheet:"Какой размер листа? Длина на ширину, в миллиметрах.",
+  grade:"Какая марка картона? Например, Т двадцать три.",
+  prof:"Какой профиль? Б, Ц, Е или Б Ц.",
+  qty:"Какой тираж, сколько штук?",
+  buy:"Какая закупочная цена за квадратный метр?",
+  markup:"Какую наценку заложить? В рублях за метр, в рублях за штуку или в процентах. Можно сказать: без наценки.",
+  route:"Откуда и куда везти? Например: из Алексина в Ярославль. Или скажите: без доставки."
+};
+function knownOf(it){ if (!VOICE.known.has(it)) VOICE.known.set(it, new Set()); return VOICE.known.get(it); }
+function missingFor(it){
+  const k = knownOf(it), con = conById(it.con);
+  return ASK_ORDER.filter(f=>{
+    if (k.has(f)) return false;
+    if (f === "prof" && (/^П-/.test(it.grade) || /^MICRO/.test(it.grade))) return false;
+    if (f === "route") return ORDER.delMode === "auto" && !(CALC && CALC.DEL && CALC.DEL.km);
+    return true;
+  });
+}
+// --- числа словами -> цифры ---
+const NW = {"ноль":0,"один":1,"одна":1,"одну":1,"два":2,"две":2,"три":3,"четыре":4,"пять":5,"шесть":6,"семь":7,"восемь":8,"девять":9,"десять":10,
+  "одиннадцать":11,"двенадцать":12,"тринадцать":13,"четырнадцать":14,"пятнадцать":15,"шестнадцать":16,"семнадцать":17,"восемнадцать":18,"девятнадцать":19,
+  "двадцать":20,"тридцать":30,"сорок":40,"пятьдесят":50,"шестьдесят":60,"семьдесят":70,"восемьдесят":80,"девяносто":90,
+  "сто":100,"двести":200,"триста":300,"четыреста":400,"пятьсот":500,"шестьсот":600,"семьсот":700,"восемьсот":800,"девятьсот":900};
+function wordsToDigits(text){
+  const toks = text.split(/(\s+)/), out = [];
+  let cur = null; // {total, small, last}
+  const flush = () => { if (cur){ out.push(String(cur.total + cur.small)); cur = null; } };
+  for (const t of toks){
+    if (/^\s+$/.test(t)){ if (!cur) out.push(t); continue; }
+    const w = t.toLowerCase().replace(/ё/g,"е").replace(/[.,!?;:]+$/,"");
+    if (w in NW){
+      const n = NW[w], cls = n === 0 ? "z" : n >= 100 ? "h" : n >= 20 ? "t" : n >= 10 ? "teen" : "u";
+      if (cls === "z"){ flush(); out.push("0 "); continue; }
+      if (cur){
+        const s = cur.small, has = {h: s >= 100, t: s % 100 >= 20, teen: s % 100 >= 10 && s % 100 < 20, u: s % 10 > 0 && !(s % 100 >= 10 && s % 100 < 20)};
+        const clash = cls === "h" ? (has.h || has.t || has.teen || has.u) : cls === "t" ? (has.t || has.teen || has.u) : (has.teen || has.u);
+        if (clash){ flush(); out.push(" "); }
+      }
+      if (!cur) cur = {total:0, small:0};
+      cur.small += n; continue;
+    }
+    if (/^тысяч[аиу]?$/.test(w) && cur){ cur.total += (cur.small || 1)*1000; cur.small = 0; continue; }
+    if (/^тысяч[аиу]?$/.test(w) && out.length && /^\d+$/.test(String(out[out.length-1]).trim())){ while (out.length && /^\s+$/.test(out[out.length-1])) out.pop(); out[out.length-1] = String(+out[out.length-1]*1000); continue; }
+    if (cur){ flush(); out.push(" "); }
+    out.push(t);
+  }
+  flush();
+  return out.join("").replace(/(\d)\s+тысяч[а-яё]*/gi, (m,d)=>d+"000").replace(/\s+/g," ");
+}
+function fuzzyCity(phrase){
+  const pw = cityNorm(phrase).split(/[\s\-]+/).filter(Boolean); if (!pw.length) return null;
+  let best = null;
+  CITIES.forEach(c=>{
+    const cw = cityNorm(c[0]).split(/[\s\-]+/);
+    if (cw.length > pw.length) return;
+    const ok = cw.every((w,i)=>{ const stem = w.length > 4 ? w.slice(0, w.length-2) : w.slice(0, Math.max(3, w.length-1)); return pw[i] && pw[i].startsWith(stem); });
+    if (ok && (!best || cw.join(" ").length > best[0].length)) best = c;
+  });
+  return best;
+}
+// --- разбор фразы ---
+function parseVoice(raw){
+  let t = " " + wordsToDigits(raw).toLowerCase().replace(/ё/g,"е").replace(/(\d)[,.](\d)/g,"$1.$2").replace(/(\d)\u00a0(\d{3})(?!\d)/g,"$1$2").replace(/(?<!\d)(\d{1,3}) (\d{3})(?=(?!\d)(?:000)?)(?=\s*(?:шт|штук|руб|р\.|₽|короб|лист|издел|$))/g,"$1$2").replace(/(?<!\d)(\d{1,3}) 000(?!\d)/g,"$1000") + " ";
+  const r = {cmd:[]};
+  if (/нов[а-яё\w]* издели|следующ[а-яё\w]* издели|добав[а-яё\w]* издели|ещ[её] издели/.test(t)) r.cmd.push("new");
+  if (/(?:^|\s)итог|весь заказ|по заказу|сколько всего/.test(t)) r.cmd.push("total");
+  if (/повтор/.test(t)) r.cmd.push("repeat");
+  if (/^\s*(стоп|тихо|хватит)\s*$/.test(t)) r.cmd.push("stop");
+  // маршрут
+  const rt = t.match(/из\s+([а-я\- ]+?)\s+(?:в|до|на)\s+([а-я\- ]+?)(?=\s*(?:[,.;]|$|\d|тираж|цен|закуп|наценк|марк|профил))/);
+  if (rt){ const a = fuzzyCity(rt[1]), b = fuzzyCity(rt[2]); if (a) r.from = a[0]; if (b) r.to = b[0]; t = t.replace(rt[0], " "); }
+  else if (t.match(/(?:^|\s)(?:в|до)\s+([а-я\-]+(?:\s+[а-я\-]+)?)\s*$/) && fuzzyCity(t.match(/(?:^|\s)(?:в|до)\s+([а-я\-]+(?:\s+[а-я\-]+)?)\s*$/)[1])){ const m2 = t.match(/(?:^|\s)(?:в|до)\s+([а-я\-]+(?:\s+[а-я\-]+)?)\s*$/); r.to = fuzzyCity(m2[1])[0]; t = t.replace(m2[0], " "); }
+  else { const to = t.match(/(?:доставк[а-яё\w]*|везти|отвезти)\s+(?:в|до)\s+([а-я\- ]+?)(?=\s*(?:[,.;]|$|\d|тираж|цен|закуп|наценк))/); if (to){ const b = fuzzyCity(to[1]); if (b) r.to = b[0]; t = t.replace(to[0], " "); } }
+  if (/доставк/.test(t) && !r.to && !r.from) r.cmd.push("delivery");
+  // размеры
+  const dm = t.match(/(\d+(?:\.\d+)?)\s*(?:на|x|х|×|\*)\s*(\d+(?:\.\d+)?)(?:\s*(?:на|x|х|×|\*)\s*(\d+(?:\.\d+)?))?/);
+  if (dm){ r.L = +dm[1]; r.W = +dm[2]; if (dm[3]) r.H = +dm[3]; t = t.replace(dm[0], " "); }
+  // наценка
+  const mk = t.match(/наценк[а-яё\w]*\s*(?:в\s*)?(\d+(?:\.\d+)?)\s*(процент[а-яё\w]*|%)?\s*(?:руб[а-яё\w]*|р\.?|₽)?\s*(?:за\s*(штук[а-яё\w]*|шт[а-яё\w]*|коробк[а-яё\w]*|короб[а-яё\w]*|издели[а-яё\w]*|лист[а-яё\w]*|квадрат[а-яё\w]*|метр[а-яё\w]*|м2|м²|квадратн[а-яё\w]*\s*метр[а-яё\w]*))?/);
+  if (mk){ r.mval = +mk[1]; r.mmode = mk[2] ? "pct" : (mk[3] && /шт|короб|издел|лист/.test(mk[3]) ? "pc" : "m2"); t = t.replace(mk[0], " "); }
+  // своя цена продажи
+  const sp = t.match(/(?:цен[а-яё\w]*\s*продаж[а-яё\w]*|продава[а-яё\w]*|прода[её]м|продаж[а-яё\w]*)\s*(?:по\s*)?(\d+(?:\.\d+)?)\s*(?:руб[а-яё\w]*|р\.?|₽)?\s*(?:за\s*(штук[а-яё\w]*|шт[а-яё\w]*|коробк[а-яё\w]*|короб[а-яё\w]*|издели[а-яё\w]*|лист[а-яё\w]*|квадрат[а-яё\w]*|метр[а-яё\w]*|м2|м²))?/);
+  if (sp){ r.mval = +sp[1]; r.mmode = sp[2] && /шт|короб|издел|лист/.test(sp[2]) ? "pricepc" : "pricem2"; t = t.replace(sp[0], " "); }
+  // закупка за м²
+  const bp = t.match(/(?:закуп[а-яё\w]*|себестоимост[а-яё\w]*|цен[а-яё\w]*|стоимост[а-яё\w]*|по)\s*(?:завода\s*)?(?:за\s*(?:квадрат[а-яё\w]*|метр[а-яё\w]*|м2|м²)\s*)?(\d+(?:\.\d+)?)\s*(?:руб[а-яё\w]*|р\.?|₽)?/) ||
+             t.match(/(\d+(?:\.\d+)?)\s*(?:руб[а-яё\w]*|р\.?|₽)?\s*за\s*(?:квадрат[а-яё\w]*|квадратн[а-яё\w]*\s*метр[а-яё\w]*|метр[а-яё\w]*|м2|м²)/);
+  if (bp){ r.buy = +bp[1]; t = t.replace(bp[0], " "); }
+  // тираж
+  const q = t.match(/тираж[а-яё\w]*\s*(\d+)/) || t.match(/(\d+)\s*(?:шт[а-яё\w]*|штук[а-яё\w]*|коробок|коробов|листов|изделий)/);
+  if (q){ r.qty = +q[1]; t = t.replace(q[0], " "); }
+  // печать, цвет, направление гофры
+  if (/без печати/.test(t)) r.print = "0";
+  const pr = t.match(/печат[а-яё\w]*\s*(?:в\s*)?(\d)/) || t.match(/(\d)\s*цвет/); if (pr) r.print = String(Math.min(4, +pr[1]));
+  if (/бел/.test(t)) r.color = "белый"; else if (/бур/.test(t)) r.color = "бурый";
+  const fl = t.match(/направлени[а-яё\w]*\s*(?:гофр[а-яё\w]*\s*)?(\d)/); if (fl) r.flute = fl[1] === "2" ? "2" : "1";
+  // марка
+  const gr = t.match(/(?:^|[^а-яa-z])(?:марк[а-яё\w]*\s*)?(т|тэ|t|п|пэ|p)\s*-?\s*(2[1-5]|3[1-4])(?!\d)/) || t.match(/марк[а-яё\w]*\s*(2[1-5]|3[1-4])(?!\d)/);
+  if (gr){ const n = gr[gr.length-1]; r.grade = (n[0] === "2" ? "Т-" : "П-") + n; t = t.replace(gr[0], " "); }
+  if (/микрогофр|микро/.test(t)) r.micro = true;
+  // профиль
+  const pf = t.match(/профил[а-яё\w]*\s*([а-яa-z ]{1,8}?)(?=\s|$|[,.])/);
+  const pv = pf ? pf[1].replace(/\s/g,"") : "";
+  if (/^(бц|бэцэ|бэц|bc|бс|бисиа?|бэсэ)/.test(pv) || /профил[а-яё\w]*\s*(б\s*ц|бэ\s*цэ|би\s*си)/.test(t)) r.prof = "BC";
+  else if (/^(б|бэ|b|би)$/.test(pv)) r.prof = "B";
+  else if (/^(ц|цэ|c|си|се|сэ)$/.test(pv)) r.prof = "C";
+  else if (/^(е|э|e|и|йе)$/.test(pv)) r.prof = "E";
+  // конструкция
+  const codeM = t.match(/(?:^|[^\d])0?\s?(200|201|202|203|204|711|215|301|307|330|331|422|423|426|427|457)(?!\d)/);
+  const KW = [[/пицц/,"0426"],[/ушк|самосбор/,"0427"],[/телевизор/,"TV"],[/ласточк/,"0215"],[/обечайк|рукав/,"OB"],[/автодн/,"0711"],
+              [/крышк[а-яё\w]*\s*(?:и\s*)?дн/,"0301"],[/лоток|поддон/,"0457"],[/без верхн/,"0200"],[/полностью внахл/,"0203"],[/внахл/,"0202"],
+              [/четыр[её]хклапан|4\s*клапан|четыре клапан/,"0201"],[/лист/,"SHEET"]];
+  if (codeM) r.con = (codeM[1] === "711" ? "0711" : "0" + codeM[1]);
+  else { const k = KW.find(([re])=>re.test(t)); if (k) r.con = k[1]; else if (/короб/.test(t) && (r.L || r.W)) r.con = "0201"; }
+  return r;
+}
+// --- речь ---
+function plural(n, one, few, many){ n = Math.abs(n) % 100; const n1 = n % 10; if (n > 10 && n < 20) return many; if (n1 > 1 && n1 < 5) return few; if (n1 === 1) return one; return many; }
+function sayRub(x){
+  if (!isFinite(x)) return "не посчитано";
+  const neg = x < 0; x = Math.abs(x);
+  let r = Math.floor(x), k = Math.round((x - r)*100); if (k === 100){ r++; k = 0; }
+  let s = `${r.toLocaleString("ru-RU").replace(/ /g," ")} ${plural(r,"рубль","рубля","рублей")}`;
+  if (k && r < 1000) s += ` ${k} ${plural(k,"копейка","копейки","копеек")}`;
+  return (neg ? "минус " : "") + s;
+}
+const sayNum = (x, d) => x.toLocaleString("ru-RU", {maximumFractionDigits:d}).replace(/ /g, " ");
+function itemAnswer(i){
+  const x = CALC.rows[i], it = x.it;
+  const con = x.con.id === "SHEET" ? "Лист" : (x.con.id === "OB" ? "Обечайка" : "Конструкция " + x.con.id.replace(/^0/, "ноль "));
+  const dims = x.con.type === "sheet" ? `${x.L} на ${x.W}` : `${x.L} на ${x.W} на ${x.H}`;
+  let s = `Изделие ${i+1}. ${con}, ${dims}, ${x.g.name.replace("-"," ")}, профиль ${({B:"Б",C:"Ц",E:"Е",BC:"Б Ц"})[it.prof]||it.prof}, тираж ${sayNum(x.qty,0)} штук. `;
+  s += `Площадь ${sayNum(x.r.area,3)} квадратного метра. `;
+  if (!x.has) return s + "Назовите закупочную цену за квадратный метр, и я посчитаю стоимость.";
+  const e = x.e;
+  s += `Себестоимость штуки ${sayRub(e.cartG)}`;
+  if (e.delAdd > 0.005) s += `, плюс доставка ${sayRub(e.delAdd)}`;
+  s += `. Цена в ноль ${sayRub(e.breakEven)}. Цена продажи ${sayRub(e.sale)} за штуку, это ${sayRub(e.sale/x.r.area)} за квадратный метр. `;
+  s += `Сумма тиража ${sayRub(Math.round(e.sale*x.qty))}. Прибыль до налога ${sayRub(Math.round(e.pre*x.qty))}, чистая прибыль ${sayRub(Math.round(e.net*x.qty))}.`;
+  if (e.net < 0) s += " Внимание, цена ниже точки безубыточности.";
+  return s;
+}
+function deliveryAnswer(){
+  const D = CALC.DEL;
+  if (ORDER.delMode !== "auto") return `Доставка указана вручную: ${sayRub(CALC.del)} за рейс.`;
+  if (!D || !D.km) return "Скажите, откуда и куда везти. Например: из Алексина в Ярославль.";
+  if (!D.best) return "Груз не помещается в машины, проверьте вкладку загрузки.";
+  return `${ORDER.from} — ${ORDER.to}, примерно ${sayNum(D.km,0)} километров. Нужна машина ${D.best.label.replace(/×/g,"по").replace(/ т(?=$|[^а-яё])/g," тонн")}. Рейс ${sayRub(Math.round(D.best.tot))} ${ORDER.delVat==="with"?"с НДС":"без НДС"}.`;
+}
+function totalAnswer(){
+  const T = CALC.T;
+  if (!T.anyPriced) return "Пока нет изделий с закупочной ценой.";
+  let s = `В заказе ${CALC.rows.length} ${plural(CALC.rows.length,"изделие","изделия","изделий")}. Выручка с НДС ${sayRub(Math.round(T.sale))}. `;
+  if (CALC.del > 0) s += `Доставка ${sayRub(Math.round(CALC.del))}. `;
+  s += `Прибыль до налога ${sayRub(Math.round(T.pre))}, чистая прибыль ${sayRub(Math.round(T.net))}.`;
+  return s;
+}
+function pickVoice(){
+  const vs = speechSynthesis.getVoices().filter(v=>/^ru/i.test(v.lang));
+  const sel = $("v_voice"); const keep = sel.value;
+  sel.innerHTML = vs.map(v=>`<option value="${esc(v.name)}">${esc(v.name)}</option>`).join("") || `<option value="">нет русского голоса</option>`;
+  const pref = vs.find(v=>v.name === keep) || vs.find(v=>/natural|online|svetlana|dariya|милена|milena/i.test(v.name)) || vs.find(v=>/google/i.test(v.name)) || vs[0];
+  if (pref) sel.value = pref.name;
+  VOICE.voice = pref || null;
+  $("v_novoice").style.display = vs.length ? "none" : "";
+}
+function speak(text, listenAfter){
+  VOICE.last = text;
+  $("v_answer").textContent = text;
+  const autoListen = () => { if (listenAfter && $("v_auto").checked && (window.SpeechRecognition || window.webkitSpeechRecognition) && !VOICE.listening) setTimeout(startListening, 250); };
+  if (!$("v_speak").checked || !window.speechSynthesis){ autoListen(); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  const v = speechSynthesis.getVoices().find(x=>x.name === $("v_voice").value) || VOICE.voice;
+  if (v) u.voice = v; u.lang = "ru-RU"; u.rate = num($("v_rate").value, 1);
+  u.onend = autoListen;
+  speechSynthesis.speak(u);
+}
+// --- короткий ответ на заданный вопрос ---
+function parseBare(text, field){
+  const t = " " + wordsToDigits(text).toLowerCase().replace(/ё/g,"е").replace(/(\d)[,.](\d)/g,"$1.$2").replace(/(\d)\u00a0(\d{3})(?!\d)/g,"$1$2").replace(/(?<!\d)(\d{1,3}) (\d{3})(?=(?!\d)(?:000)?)(?=\s*(?:шт|штук|руб|р\.|₽|короб|лист|издел|$))/g,"$1$2").replace(/(?<!\d)(\d{1,3}) 000(?!\d)/g,"$1000") + " ";
+  const n = (t.match(/(\d+(?:\.\d+)?)/) || [])[1];
+  const r = {};
+  if (field === "qty" && n) r.qty = +n;
+  if (field === "buy" && n) r.buy = +n;
+  if (field === "markup"){
+    if (/без наценк|без нацен|ноль/.test(t) && !n){ r.mmode = "m2"; r.mval = 0; }
+    else if (n){ r.mval = +n; r.mmode = /процент|%/.test(t) ? "pct" : (/штук|шт|короб|издел|лист/.test(t) ? "pc" : "m2"); }
+  }
+  if (field === "grade" && n && /^(2[1-5]|3[1-4])$/.test(n)) r.grade = (n[0] === "2" ? "Т-" : "П-") + n;
+  if (field === "prof"){
+    const w = t.replace(/[^а-яa-z]/g, "");
+    if (/^(бц|бэцэ|бэц|bc|бисиа?|бэсэ|бс)/.test(w)) r.prof = "BC";
+    else if (/^(б|бэ|b|би|бе)$/.test(w)) r.prof = "B";
+    else if (/^(ц|цэ|c|си|се|сэ)$/.test(w)) r.prof = "C";
+    else if (/^(е|э|e|и|йе|ее)$/.test(w)) r.prof = "E";
+  }
+  if (field === "dims"){
+    const ns = (t.match(/\d+(?:\.\d+)?/g) || []).map(Number);
+    if (ns.length >= 2){ r.L = ns[0]; r.W = ns[1]; if (ns[2]) r.H = ns[2]; }
+  }
+  if (field === "route"){
+    if (/без доставк|самовывоз|не нужн/.test(t)) r.noDelivery = true;
+    else { const c = fuzzyCity(t.replace(/^\s*(?:в|до|на)\s+/, "").trim()); if (c) r.to = c[0]; }
+  }
+  return r;
+}
+// --- применить команду ---
+function handleUtterance(text){
+  $("v_heard").textContent = "«" + text + "»";
+  const r = parseVoice(text);
+  if (r.cmd.includes("stop")){ speechSynthesis.cancel(); VOICE.pending = null; return; }
+  // короткий ответ на вопрос
+  if (VOICE.pending){
+    const b = parseBare(text, VOICE.pending);
+    Object.keys(b).forEach(k=>{ if (r[k] === undefined) r[k] = b[k]; });
+  }
+  const skip = /считай|по умолчанию|неважно|не важно|без вопросов|оставь как есть/.test(text.toLowerCase());
+  if (r.cmd.includes("repeat") && Object.keys(r).length === 1){ speak(VOICE.last || "Пока нечего повторять."); return; }
+  if (r.cmd.includes("new")){ VOICE.pending = null; const cur = ORDER.items[ORDER.sel], n = NEW_ITEM(); n.grade = cur.grade; n.prof = cur.prof; n.buy = cur.buy; n.mmode = cur.mmode; n.mval = cur.mval; ORDER.items.push(n); ORDER.sel = ORDER.items.length-1; }
+  const it = ORDER.items[ORDER.sel], got = [], K = knownOf(it);
+  if (r.con){ it.con = r.con; K.add("con"); got.push("конструкция " + r.con); }
+  if (r.L){ it.L = r.L; it.W = r.W; if (r.H) it.H = r.H; if (r.H || it.con === "SHEET") K.add("dims"); got.push(`размеры ${r.L}×${r.W}${r.H?"×"+r.H:""}`); }
+  if (r.grade){ it.grade = r.micro && /2[23]$/.test(r.grade) ? "MICRO-" + r.grade : r.grade; K.add("grade"); got.push("марка " + r.grade); }
+  if (r.prof){ it.prof = r.prof; K.add("prof"); got.push("профиль " + r.prof); }
+  const pl = profList(it.grade); if (!pl.includes(it.prof)) it.prof = pl[0];
+  if (r.qty){ it.qty = r.qty; K.add("qty"); got.push("тираж " + r.qty); }
+  if (r.buy !== undefined){ it.buy = r.buy; K.add("buy"); got.push("закупка " + r.buy + " ₽/м²"); }
+  if (r.mmode){ it.mmode = r.mmode; it.mval = r.mval; K.add("markup"); if (/^price/.test(r.mmode)) K.add("buy"); got.push({m2:"наценка ₽/м²",pc:"наценка ₽/шт",pct:"наценка %",pricem2:"цена ₽/м²",pricepc:"цена ₽/шт"}[r.mmode] + " " + r.mval); }
+  if (r.print !== undefined){ it.print = r.print; got.push("печать " + r.print); }
+  if (r.color){ it.color = r.color; got.push(r.color); }
+  if (r.flute){ it.flute = r.flute; got.push("гофра " + r.flute); }
+  if (r.noDelivery){ ORDER.delMode = "manual"; ORDER.del = 0; K.add("route"); got.push("без доставки"); }
+  if (r.from || r.to){ K.add("route"); ORDER.delMode = "auto"; if (r.from) ORDER.from = r.from; if (r.to) ORDER.to = r.to; ORDER.km = ""; got.push(`маршрут ${ORDER.from} → ${ORDER.to}`); }
+  if (skip) ASK_ORDER.forEach(f=>K.add(f));
+  saveOrder(); loadGlobal(); loadForm(); recalc();
+  $("v_parsed").textContent = got.length ? "Понял: " + got.join(", ") : "";
+  // чего не хватает — спросить
+  const miss = (got.length || r.cmd.includes("new") || VOICE.pending) ? missingFor(it) : [];
+  if (miss.length && !r.cmd.includes("total") && !(r.cmd.includes("delivery") && !got.length)){
+    const f = miss[0], prev = VOICE.pending; VOICE.pending = f;
+    const q = f === "dims" && it.con === "SHEET" ? QUESTIONS.dimsSheet : QUESTIONS[f];
+    speak((got.length ? "Принято. " : (prev ? "Не понял ответ. " : "")) + q, true);
+    return;
+  }
+  VOICE.pending = null;
+  const parts = [];
+  if (got.length || r.cmd.includes("new") || skip) parts.push(itemAnswer(ORDER.sel));
+  if (r.from || r.to || r.cmd.includes("delivery") || (got.length && ORDER.delMode === "auto" && CALC.DEL && CALC.DEL.best)) parts.push(deliveryAnswer());
+  if (r.cmd.includes("total")) parts.push(totalAnswer());
+  if (!parts.length) parts.push("Не расслышал параметры. Скажите, например: ноль двести один, триста на двести на сто пятьдесят, Т двадцать три, профиль Б, тираж пять тысяч, закупка сорок рублей за метр, наценка восемь рублей за метр.");
+  speak(parts.join(" "));
+}
+// --- распознавание ---
+function startListening(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR){ speak("Ваш браузер не умеет распознавать речь. Откройте файл в Google Chrome или Microsoft Edge, или напишите команду в поле ниже."); return; }
+  if (VOICE.listening){ VOICE.rec && VOICE.rec.stop(); return; }
+  speechSynthesis && speechSynthesis.cancel();
+  const rec = new SR(); VOICE.rec = rec;
+  rec.lang = "ru-RU"; rec.interimResults = true; rec.continuous = false; rec.maxAlternatives = 1;
+  let final = "";
+  rec.onstart = () => { VOICE.listening = true; $("micBtn").classList.add("on"); $("micBtn").textContent = "● Слушаю… (нажмите, чтобы закончить)"; $("v_heard").textContent = ""; };
+  rec.onresult = e => { let interim = ""; for (let i=e.resultIndex;i<e.results.length;i++){ const tr = e.results[i][0].transcript; if (e.results[i].isFinal) final += tr + " "; else interim += tr; } $("v_heard").textContent = (final + interim).trim(); };
+  rec.onerror = e => {
+    const m = {"not-allowed":"Нет доступа к микрофону. Разрешите микрофон для этой страницы в адресной строке браузера.","network":"Для распознавания речи нужен интернет.","no-speech":"Ничего не услышал, попробуйте ещё раз.","audio-capture":"Микрофон не найден."}[e.error] || ("Ошибка распознавания: " + e.error);
+    $("v_answer").textContent = m;
+  };
+  rec.onend = () => { VOICE.listening = false; $("micBtn").classList.remove("on"); $("micBtn").textContent = "🎤 Говорить"; if (final.trim()) handleUtterance(final.trim()); };
+  rec.start();
+}
+$("micBtn").addEventListener("click", startListening);
+$("v_send").addEventListener("click", ()=>{ const t = $("v_text").value.trim(); if (t){ handleUtterance(t); $("v_text").value = ""; } });
+$("v_text").addEventListener("keydown", e=>{ if (e.key === "Enter"){ e.preventDefault(); $("v_send").click(); } });
+$("v_toggle").addEventListener("click", ()=>{ $("voicePanel").classList.toggle("open"); });
+$("v_repeat").addEventListener("click", ()=>speak(VOICE.last || "Пока нечего повторять."));
+$("v_stop").addEventListener("click", ()=>{ window.speechSynthesis && speechSynthesis.cancel(); });
+document.addEventListener("keydown", e=>{ if (e.code === "Space" && e.ctrlKey){ e.preventDefault(); startListening(); } });
+if (window.speechSynthesis){ pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; }
+
+
+/* ======================= TELEGRAM ======================= */
+const TG = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initData !== undefined && window.Telegram.WebApp.platform !== "unknown" ? window.Telegram.WebApp : null;
+if (TG){
+  try{ TG.ready(); TG.expand(); if (TG.disableVerticalSwipes) TG.disableVerticalSwipes(); }catch(e){}
+  if (!(window.SpeechRecognition || window.webkitSpeechRecognition)) $("voiceFab").textContent = "💬 Команда";
+}
+
+/* ======================= СТАРТ ======================= */
+fillSelects();
+fillCities();
+if (ORDER.sel >= ORDER.items.length) ORDER.sel = 0;
+loadGlobal();
+loadForm();
+renderSettings();
+recalc();
+renderLoad();
+</script>
+</body>
+</html>
